@@ -1,2 +1,2 @@
-# SD3-Bazaar
-For SD3 4-man
+# Bazaar Web-App
+SD2 & SD3
