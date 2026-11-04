@@ -8,6 +8,8 @@ const styles = {
   ongoing: 'bg-green-100 text-green-800',
   completed: 'bg-slate-200 text-slate-700',
   cancelled: 'bg-red-100 text-red-800',
+  visible: 'bg-green-100 text-green-800',
+  removed: 'bg-red-100 text-red-800',
 }
 
 export default function StatusBadge({ status }) {
