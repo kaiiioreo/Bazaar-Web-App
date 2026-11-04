@@ -4,6 +4,10 @@ const styles = {
   rejected: 'bg-red-100 text-red-800',
   active: 'bg-green-100 text-green-800',
   suspended: 'bg-slate-200 text-slate-700',
+  upcoming: 'bg-blue-100 text-blue-800',
+  ongoing: 'bg-green-100 text-green-800',
+  completed: 'bg-slate-200 text-slate-700',
+  cancelled: 'bg-red-100 text-red-800',
 }
 
 export default function StatusBadge({ status }) {
