@@ -1,0 +1,41 @@
+export const vendors = [
+  {
+    vendor_id: 1,
+    business_name: "Aling Nena's Fresh Produce",
+    owner_name: 'Nena Santos',
+    email: 'nena@example.com',
+    category: 'Produce',
+    status: 'active',
+    description: 'Vegetables and fruits harvested daily from our family farm.',
+    products: [
+      { name: 'Kalabasa (Squash)', price: 45, stock_status: 'in_stock' },
+      { name: 'Patatas (Potato)', price: 60, stock_status: 'low_stock' },
+    ],
+    schedule: [
+      { event: 'Saturday Community Bazaar', date: '2026-11-14', slot: 'A-03' },
+      { event: 'Holiday Market', date: '2026-12-05', slot: 'B-01' },
+    ],
+  },
+  {
+    vendor_id: 2,
+    business_name: 'Handwoven Treasures by Lita',
+    owner_name: 'Lita Gomez',
+    email: 'lita@example.com',
+    category: 'Crafts',
+    status: 'active',
+    description: 'Handwoven baskets, bags, and home decor made with local materials.',
+    products: [{ name: 'Woven Basket', price: 350, stock_status: 'in_stock' }],
+    schedule: [{ event: 'Saturday Community Bazaar', date: '2026-11-14', slot: 'C-02' }],
+  },
+  {
+    vendor_id: 3,
+    business_name: 'Choco Bod Sweets',
+    owner_name: 'Ramon Dela Cruz',
+    email: 'ramon@example.com',
+    category: 'Baked Goods',
+    status: 'suspended',
+    description: 'Chocolate treats and pastries.',
+    products: [{ name: 'Chocobod Cake', price: 280, stock_status: 'out_of_stock' }],
+    schedule: [],
+  },
+]
