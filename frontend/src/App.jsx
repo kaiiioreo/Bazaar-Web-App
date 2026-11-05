@@ -1,7 +1,17 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import VendorDashboard from './pages/vendor/VendorDashboard'
+
+
 export default function App() {
   return (
-    <h1 className="text-3xl font-bold text-blue-600">
-      Tailwind is working
-    </h1>
+    <BrowserRouter>
+      <Routes>
+        {/* 2. Update the temporary root redirect or keep it as is */}
+        <Route path="/" element={<Navigate to="/vendor" replace />} />
+        {/* 3. Add your Vendor Route here */}
+        <Route path="/vendor" element={<VendorDashboard />} />
+
+      </Routes>
+    </BrowserRouter>
   )
 }
