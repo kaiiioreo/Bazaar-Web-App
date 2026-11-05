@@ -9,7 +9,7 @@ import StatCard from '../../components/vendor/StatCard'
 import Logo from '../../components/vendor/Logo'
 import usePersistedState from '../../components/vendor/usePersistedState'
 import { STOCK, formatDate } from '../../components/vendor/vendorHelpers'
-import { vendorProfile, vendorProducts, bazaarEvents, vendorSchedule } from '../../mock/vendor'
+import { vendorProfile, vendorProducts, bazaarEvents, vendorSchedule } from '../../mock/vendorUImock'
 
 const TABS = ['Profile', 'Products', 'Schedule', 'AI assistant']
 
