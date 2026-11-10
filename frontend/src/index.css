@@ -1,1 +1,62 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
 @import "tailwindcss";
+
+:root {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  color: #252c25;
+  background: #fbfaf5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-optical-sizing: auto;
+  font-weight: 400;
+
+  --paper: #fbfaf5;
+  --cream: #f3f2ea;
+  --forest: #293f32;
+  --ink: #252c25;
+  --ink-soft: #6d7268;
+  --terracotta: #b86f57;
+  --lime: #e2e8d5;
+  --line: #e8e7dd;
+  --sans: 'DM Sans', 'Segoe UI', sans-serif;
+  --serif: 'DM Serif Display', Georgia, serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-width: 320px;
+  scroll-behavior: smooth;
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid #8a9b70;
+  outline-offset: 3px;
+}
+
+::selection {
+  background: #dce5ce;
+  color: var(--forest);
+}
