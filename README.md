@@ -23,7 +23,7 @@ A web app that connects bazaar vendors, customers, and organizers (Admins). Vend
     cd frontend   ##Changes the directory to frontend to install npm there
     npm install   ##React , JavaScript, ESL
     npm run dev
-3.)Open http://localhost:5173. You should see the Tailwind test page.
+3.) Open http://localhost:5173. You should see the Bazaar guest landing page.
 ```
 
 ## Project Structure
@@ -35,6 +35,13 @@ frontend/src/
 ├── mock/         # Fake data used until the backend exists
 └── api/          # Axios calls (added in Phase 2)
 ```
+
+## Shared Core UI
+- `/` is the guest entry point; browsing does not require an account.
+- `/login` is shared by Customers, Vendors, and Admins. Admin accounts are provisioned by the Bazaar team.
+- `/register` supports Customer and Vendor account types.
+- `/forgot-password` is the password-reset entry point.
+- The Bazaar chat widget is a UI preview until the backend AI service is connected.
 
 ## Team Ownership (Phase 1: UI)
 | Area | Branch name | Owner |
