@@ -10,6 +10,15 @@ import SearchResults from './pages/customer/SearchResults'
 import VendorProfile from './pages/customer/VendorProfile'
 import Schedule from './pages/customer/Schedule'
 import Favorites from './pages/customer/Favorites'
+import AdminLayout from './layouts/AdminLayout'
+import Dashboard from './pages/admin/Dashboard'
+import Applications from './pages/admin/Applications'
+import Vendors from './pages/admin/Vendors'
+import Users from './pages/admin/Users'
+import Events from './pages/admin/Events'
+import Slots from './pages/admin/Slots'
+import Reviews from './pages/admin/Reviews'
+import VendorDashboard from './pages/vendor/VendorDashboard'
 import './App.css'
 
 export default function App() {
@@ -30,7 +39,17 @@ export default function App() {
             <Route path="vendors/:id" element={<VendorProfile />} />
             <Route path="schedule" element={<Schedule />} />
             <Route path="favorites" element={<Favorites />} />
-          </Route>
+            <Route path="/vendor" element={<VendorDashboard />} />
+            <Route path="/admin" element={<AdminLayout />}>
+            <Route index element={<Dashboard />} />
+            <Route path="applications" element={<Applications />} />
+            <Route path="vendors" element={<Vendors />} />
+            <Route path="users" element={<Users />} />
+            <Route path="events" element={<Events />} />
+            <Route path="slots" element={<Slots />} />
+            <Route path="reviews" element={<Reviews />} />
+            </Route>
+            </Route>
           </Routes>
         </main>
         <ChatbotWidget />
