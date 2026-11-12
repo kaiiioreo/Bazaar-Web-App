@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import ChatbotWidget from './components/common/ChatbotWidget.jsx'
 import Navbar from './components/common/Navbar.jsx'
 import AuthPage from './pages/AuthPage.jsx'
@@ -23,24 +23,30 @@ import './App.css'
 
 export default function App() {
   return (
-    <BrowserRouter>
-      <div className="app-shell">
-        <Navbar />
-        <main>
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<AuthPage mode="login" />} />
-            <Route path="/register" element={<AuthPage mode="register" />} />
-            <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
-            <Route path="*" element={<NotFoundPage />} />
-            <Route path="/customer" element={<CustomerLayout />}>
+    <div className="app-shell">
+      <Navbar />
+      <main>
+        <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<AuthPage mode="login" />} />
+          <Route path="/register" element={<AuthPage mode="register" />} />
+          <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
+
+          {/* Customer Routes */}
+          <Route path="/customer" element={<CustomerLayout />}>
             <Route index element={<CustomerHome />} />
             <Route path="search" element={<SearchResults />} />
             <Route path="vendors/:id" element={<VendorProfile />} />
             <Route path="schedule" element={<Schedule />} />
             <Route path="favorites" element={<Favorites />} />
-            <Route path="/vendor" element={<VendorDashboard />} />
-            <Route path="/admin" element={<AdminLayout />}>
+          </Route>
+
+          {/* Vendor Route */}
+          <Route path="/vendor" element={<VendorDashboard />} />
+
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminLayout />}>
             <Route index element={<Dashboard />} />
             <Route path="applications" element={<Applications />} />
             <Route path="vendors" element={<Vendors />} />
@@ -48,12 +54,13 @@ export default function App() {
             <Route path="events" element={<Events />} />
             <Route path="slots" element={<Slots />} />
             <Route path="reviews" element={<Reviews />} />
-            </Route>
-            </Route>
-          </Routes>
-        </main>
-        <ChatbotWidget />
-      </div>
-    </BrowserRouter>
+          </Route>
+
+          {/* 404 Catch-all */}
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
+      </main>
+      <ChatbotWidget />
+    </div>
   )
 }
