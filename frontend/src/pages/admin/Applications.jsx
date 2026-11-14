@@ -1,12 +1,16 @@
 import { useState } from 'react'
-import { applications as initialApplications } from '../../mock/applications'
+import { approveApplication, getApplications, rejectApplication } from '../../api/admin'
+import useApi from '../../hooks/useApi'
+import LoadState from '../../components/common/LoadState'
 import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/admin/ConfirmModal'
 
 const tabs = ['pending', 'approved', 'rejected', 'all']
 
 export default function Applications() {
-  const [applications, setApplications] = useState(initialApplications)
+  const { data, loading, error, reload, setData: setApplications } = useApi(() => getApplications(), [])
+  const applications = data ?? []
+  const [actionError, setActionError] = useState('')
   const [filter, setFilter] = useState('pending')
   const [selected, setSelected] = useState(null) // { app, action }
   const [reason, setReason] = useState('')
@@ -22,15 +26,17 @@ export default function Applications() {
     setReason('')
   }
 
-  const confirmAction = () => {
-    const newStatus = selected.action === 'approve' ? 'approved' : 'rejected'
-    setApplications((prev) =>
-      prev.map((a) =>
-        a.application_id === selected.app.application_id
-          ? { ...a, status: newStatus, rejection_reason: reason }
-          : a
-      )
-    )
+  const confirmAction = async () => {
+    setActionError('')
+    try {
+      const updated =
+        selected.action === 'approve'
+          ? await approveApplication(selected.app.application_id)
+          : await rejectApplication(selected.app.application_id, reason)
+      setApplications((prev) => prev.map((a) => (a.application_id === updated.application_id ? updated : a)))
+    } catch (err) {
+      setActionError(err.message)
+    }
     closeModal()
   }
 
@@ -39,6 +45,8 @@ export default function Applications() {
   return (
     <div>
       <h2 className="mb-6 text-2xl font-bold">Vendor Applications</h2>
+      {actionError && <p className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{actionError}</p>}
+      {(loading || error) && <LoadState loading={loading} error={error} onRetry={reload} />}
 
       {/* Filter tabs */}
       <div className="mb-4 flex flex-wrap gap-2">
@@ -85,7 +93,7 @@ export default function Applications() {
                   <p className="max-w-xs text-xs text-slate-500">{app.business_details}</p>
                   {app.ai_flag && (
                     <span
-                      title="Flagged by AI as incomplete or inconsistent"
+                      title={app.ai_flag_reason || 'Flagged by AI as incomplete or inconsistent'}
                       className="mt-1 inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800"
                     >
                       ⚠ AI flagged

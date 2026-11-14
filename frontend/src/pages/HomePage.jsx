@@ -1,5 +1,7 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '../components/common/Icon.jsx'
+import { getEvents, getVendors } from '../api/catalog'
 
 const categories = [
   { name: 'Home & living', icon: '⌂', color: 'sage' },
@@ -42,11 +44,11 @@ const makers = [
 function MakerCard({ maker }) {
   return (
     <article className="maker-card">
-      <a className="maker-image" href="/#stalls" aria-label={`Discover ${maker.name}`}>
+      <Link className="maker-image" to={maker.to ?? '/customer'} aria-label={`Discover ${maker.name}`}>
         <img src={maker.image} alt={maker.imageAlt} loading="lazy" />
         <span className="image-tag">{maker.tag}</span>
         <span className="save-button" aria-hidden="true"><Icon name="arrow-up-right" size={17} /></span>
-      </a>
+      </Link>
       <div className="maker-details">
         <div>
           <h3>{maker.name}</h3>
@@ -59,7 +61,36 @@ function MakerCard({ maker }) {
   )
 }
 
+// Show the top-rated real vendors, reusing the sample photos as cover images.
+function useHomeData() {
+  const [data, setData] = useState({ makers, next: null })
+  useEffect(() => {
+    Promise.all([getVendors(), getEvents()])
+      .then(([vendors, events]) => {
+        const top = [...vendors].sort((a, b) => b.rating - a.rating).slice(0, 3)
+        setData({
+          makers: top.length
+            ? top.map((v, i) => ({
+                ...makers[i % makers.length],
+                name: v.name,
+                type: v.category,
+                rating: v.rating ? v.rating.toFixed(1) : 'New',
+                image: v.image || makers[i % makers.length].image,
+                location: 'Cebu City',
+                to: `/customer/vendors/${v.id}`,
+              }))
+            : makers,
+          next: events[0] ?? null,
+        })
+      })
+      .catch(() => {})
+  }, [])
+  return data
+}
+
 export default function HomePage() {
+  const { makers: shownMakers, next } = useHomeData()
+  const nextDate = next ? new Date(`${next.date}T00:00:00`) : null
   return (
     <>
       <section className="hero-section" id="discover">
@@ -67,13 +98,13 @@ export default function HomePage() {
           <span className="eyebrow"><span className="eyebrow-dot" /> YOUR NEIGHBORHOOD, A LITTLE CLOSER</span>
           <h1>Find local goods.<br />Meet the <span>makers.</span></h1>
           <p className="hero-description">
-            Browse vendor previews and upcoming bazaar information as a guest. Product, price, and stock details will appear with the marketplace listings.
+            Browse vendors, prices, stock, and upcoming bazaar schedules as a guest. No account needed.
           </p>
           <div className="hero-actions">
-            <a className="button button-dark button-large" href="#stalls">
+            <Link className="button button-dark button-large" to="/customer">
               Browse vendors <Icon name="arrow" size={18} />
-            </a>
-            <a className="text-link" href="#events">Check the bazaar schedule <Icon name="arrow-up-right" size={16} /></a>
+            </Link>
+            <Link className="text-link" to="/customer/schedule">Check the bazaar schedule <Icon name="arrow-up-right" size={16} /></Link>
           </div>
           <div className="hero-proof">
             <div className="avatar-stack" aria-hidden="true">
@@ -110,15 +141,15 @@ export default function HomePage() {
             <span className="eyebrow">START WITH WHAT YOU’RE LOOKING FOR</span>
             <h2>Browse by <span>category.</span></h2>
           </div>
-          <a className="text-link" href="#stalls">Browse all categories <Icon name="arrow-up-right" size={16} /></a>
+          <Link className="text-link" to="/customer">Browse all categories <Icon name="arrow-up-right" size={16} /></Link>
         </div>
         <div className="category-list">
           {categories.map((category) => (
-            <a className="category-item" href="#stalls" key={category.name}>
+            <Link className="category-item" to="/customer" key={category.name}>
               <span className={`category-icon category-${category.color}`} aria-hidden="true">{category.icon}</span>
               <span>{category.name}</span>
               <Icon className="category-arrow" name="arrow-up-right" size={15} />
-            </a>
+            </Link>
           ))}
         </div>
       </section>
@@ -129,14 +160,14 @@ export default function HomePage() {
             <div>
               <span className="eyebrow"><span className="eyebrow-dot" /> BAZAAR VENDORS</span>
               <h2>Meet the <span>vendors.</span></h2>
-              <p className="section-description">Explore sample vendor listings. Product prices and stock status will appear with each listing.</p>
+              <p className="section-description">Top-rated vendors right now. Open a vendor to see prices, stock, and where to find them.</p>
             </div>
             <Link className="button button-outline" to="/register?type=vendor">
               Vendor sign up <Icon name="arrow" size={17} />
             </Link>
           </div>
           <div className="maker-grid">
-            {makers.map((maker) => <MakerCard key={maker.name} maker={maker} />)}
+            {shownMakers.map((maker) => <MakerCard key={maker.name} maker={maker} />)}
           </div>
         </div>
       </section>
@@ -146,10 +177,12 @@ export default function HomePage() {
           <div className="event-copy">
             <span className="eyebrow"><span className="eyebrow-dot" /> BAZAAR SCHEDULE</span>
             <h2>Find a bazaar<br />and see who’s <span>attending.</span></h2>
-            <p>Check event dates and locations, then find which vendors will be there. Schedule details will appear here once connected.</p>
-            <a className="button button-dark button-large" href="#stalls">
-              Browse vendor previews <Icon name="arrow" size={18} />
-            </a>
+            <p>{next
+              ? `Next up: ${next.name} at ${next.location}, with ${next.vendors.length} vendors confirmed so far.`
+              : 'Check event dates and locations, then find which vendors will be there.'}</p>
+            <Link className="button button-dark button-large" to="/customer/schedule">
+              See the full schedule <Icon name="arrow" size={18} />
+            </Link>
           </div>
           <div className="event-visual">
             <img
@@ -157,7 +190,11 @@ export default function HomePage() {
               alt="Friends spending a sunny afternoon together at an outdoor gathering"
               loading="lazy"
             />
-            <div className="event-date"><span>EVENT</span><strong>DAY</strong><small>DATE & LOCATION</small></div>
+            <div className="event-date">
+              <span>{nextDate ? nextDate.toLocaleDateString('en-PH', { month: 'short' }).toUpperCase() : 'EVENT'}</span>
+              <strong>{nextDate ? nextDate.getDate() : 'DAY'}</strong>
+              <small>{next ? next.location.split(',')[0] : 'DATE & LOCATION'}</small>
+            </div>
             <span className="event-caption">See event details and participating vendors.</span>
           </div>
           <span className="event-decoration" aria-hidden="true">✳</span>

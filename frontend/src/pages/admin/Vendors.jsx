@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { vendors as initialVendors } from '../../mock/vendors'
+import { getVendors, setUserStatus } from '../../api/admin'
+import useApi from '../../hooks/useApi'
+import LoadState from '../../components/common/LoadState'
 import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/admin/ConfirmModal'
 
@@ -10,7 +12,9 @@ const stockLabels = {
 }
 
 export default function Vendors() {
-  const [vendors, setVendors] = useState(initialVendors)
+  const { data, loading, error, reload, setData: setVendors } = useApi(() => getVendors(), [])
+  const vendors = data ?? []
+  const [actionError, setActionError] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewingId, setViewingId] = useState(null)
@@ -24,15 +28,17 @@ export default function Vendors() {
     return matchesSearch && matchesStatus
   })
 
-  const confirmToggle = () => {
-    setVendors((prev) =>
-      prev.map((v) =>
-        v.vendor_id === toToggle.vendor_id
-          ? { ...v, status: v.status === 'active' ? 'suspended' : 'active' }
-          : v
-      )
-    )
+  // SuspendVendor(): suspending the vendor's account hides them from customers.
+  const confirmToggle = async () => {
+    const target = toToggle
     setToToggle(null)
+    setActionError('')
+    try {
+      const updated = await setUserStatus(target.vendor_id, target.status === 'active' ? 'suspended' : 'active')
+      setVendors((prev) => prev.map((v) => (v.vendor_id === target.vendor_id ? { ...v, status: updated.status } : v)))
+    } catch (err) {
+      setActionError(err.message)
+    }
   }
 
   const suspending = toToggle?.status === 'active'
@@ -40,6 +46,8 @@ export default function Vendors() {
   return (
     <div>
       <h2 className="mb-6 text-2xl font-bold">Vendor Management</h2>
+      {actionError && <p className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{actionError}</p>}
+      {(loading || error) && <LoadState loading={loading} error={error} onRetry={reload} />}
 
       {/* Search + filter */}
       <div className="mb-4 flex flex-wrap gap-3">
@@ -152,7 +160,7 @@ export default function Vendors() {
             ) : (
               <ul className="space-y-2 text-sm">
                 {viewingVendor.products.map((p) => (
-                  <li key={p.name} className="flex justify-between rounded bg-slate-50 px-3 py-2">
+                  <li key={p.product_id} className="flex justify-between rounded bg-slate-50 px-3 py-2">
                     <span>{p.name}</span>
                     <span className="text-slate-600">
                       ₱{p.price} · {stockLabels[p.stock_status]}
@@ -171,7 +179,7 @@ export default function Vendors() {
                   <li key={s.event + s.date} className="rounded bg-slate-50 px-3 py-2">
                     <p className="font-medium">{s.event}</p>
                     <p className="text-slate-600">
-                      {s.date} · Stall {s.slot}
+                      {s.date} · {s.slot ? `Stall ${s.slot}` : 'Waiting for stall'}
                     </p>
                   </li>
                 ))}

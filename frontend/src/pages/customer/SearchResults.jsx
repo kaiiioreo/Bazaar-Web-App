@@ -2,19 +2,36 @@ import { Link, useOutletContext, useSearchParams } from 'react-router-dom';
 import SearchBar from '../../components/customer/SearchBar';
 import VendorCard from '../../components/customer/VendorCard';
 import ProductCard from '../../components/customer/ProductCard';
-import { searchCatalog } from '../../mock/customerMock';
+import LoadState from '../../components/common/LoadState';
+import useApi from '../../hooks/useApi';
+import { search } from '../../api/catalog';
 
 export default function SearchResults() {
   const { favorites, toggleFavorite } = useOutletContext();
   const [params] = useSearchParams();
   const q = params.get('q') ?? '';
-  const results = searchCatalog(q);
-  const empty = !results.vendors.length && !results.products.length;
+  // Natural-language search: the backend turns everyday words into filters.
+  const { data: results, loading, error, reload } = useApi(
+    () => (q.trim() ? search(q) : Promise.resolve({ vendors: [], products: [], filters: null })),
+    [q],
+  );
+
+  const empty = results && !results.vendors.length && !results.products.length;
+  const f = results?.filters;
+  const understood = f && [
+    f.keywords?.length ? `“${f.keywords.join(', ')}”` : null,
+    f.category ? `in ${f.category}` : null,
+    f.max_price ? `under ₱${f.max_price}` : null,
+    f.in_stock_only ? 'in stock' : null,
+  ].filter(Boolean).join(' ');
 
   return (
     <div className="py-8">
       <SearchBar key={q} defaultValue={q} />
-      {empty ? (
+      {understood && !loading && <p className="mt-3 text-sm text-stone-500">Searching for {understood}</p>}
+      {loading || error ? (
+        <LoadState loading={loading} error={error} onRetry={reload} />
+      ) : empty ? (
         <div className="mt-8">
           <p className="text-lg font-semibold text-teal-950">No matches for "{q}"</p>
           <p className="mt-1 text-stone-600">Try a product like rosquillos, or a category like snacks or coffee.</p>

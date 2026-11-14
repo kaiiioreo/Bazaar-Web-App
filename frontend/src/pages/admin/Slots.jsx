@@ -1,25 +1,40 @@
-import { useState } from 'react'
-import { events } from '../../mock/events'
-import { slotAssignments as initialAssignments } from '../../mock/slots'
+import { useEffect, useState } from 'react'
+import { assignSlot, getEventSlots, getEvents, unassignSlot } from '../../api/admin'
+import useApi from '../../hooks/useApi'
+import LoadState from '../../components/common/LoadState'
 import ConfirmModal from '../../components/admin/ConfirmModal'
 import AssignVendorModal from '../../components/admin/AssignVendorModal'
 
-// A-01, A-02 ... A-05, B-01 ... (five stalls per row)
-const makeLabels = (count) =>
-  Array.from({ length: count }, (_, i) => {
-    const row = String.fromCharCode(65 + Math.floor(i / 5))
-    const num = String((i % 5) + 1).padStart(2, '0')
-    return `${row}-${num}`
-  })
-
+// AssignStallToVendor(): stalls are created with the event (A-01, A-02 ... five per row).
 export default function Slots() {
-  const upcomingEvents = events.filter((e) => e.status === 'upcoming')
+  const eventsApi = useApi(() => getEvents(), [])
+  const upcomingEvents = (eventsApi.data ?? []).filter((e) => e.status === 'upcoming')
 
-  const [assignments, setAssignments] = useState(initialAssignments)
-  const [eventId, setEventId] = useState(upcomingEvents[0]?.event_id ?? null)
-  const [assigningSlot, setAssigningSlot] = useState(null) // label of an open stall
-  const [unassigning, setUnassigning] = useState(null) // label of an assigned stall
+  const [eventId, setEventId] = useState(null)
+  const [layout, setLayout] = useState(null) // { event, slots, waiting } from the API
+  const [layoutError, setLayoutError] = useState('')
+  const [assigningSlot, setAssigningSlot] = useState(null) // slot object (open stall)
+  const [unassigning, setUnassigning] = useState(null) // slot object (assigned stall)
   const [notice, setNotice] = useState('')
+
+  const selectedId = eventId ?? upcomingEvents[0]?.event_id ?? null
+
+  useEffect(() => {
+    if (!selectedId) return
+    let active = true
+    getEventSlots(selectedId)
+      .then((d) => active && (setLayout(d), setLayoutError('')))
+      .catch((err) => active && setLayoutError(err.message))
+    return () => {
+      active = false
+    }
+  }, [selectedId])
+
+  const refreshLayout = async () => setLayout(await getEventSlots(selectedId))
+
+  if (eventsApi.loading || eventsApi.error) {
+    return <LoadState loading={eventsApi.loading} error={eventsApi.error} onRetry={eventsApi.reload} />
+  }
 
   if (upcomingEvents.length === 0) {
     return (
@@ -32,43 +47,42 @@ export default function Slots() {
     )
   }
 
-  const event = upcomingEvents.find((e) => e.event_id === eventId)
-  const labels = makeLabels(event.total_slots)
-  const eventAssignments = assignments[eventId] ?? {}
-  const assignedIds = Object.values(eventAssignments)
+  if (layoutError) return <LoadState error={layoutError} onRetry={refreshLayout} />
+  if (!layout || layout.event.event_id !== selectedId) return <LoadState loading />
 
-  const vendorName = (id) =>
-    event.preregistered.find((v) => v.vendor_id === id)?.business_name ?? 'Unknown vendor'
-
-  const waiting = event.preregistered.filter((v) => !assignedIds.includes(v.vendor_id))
-  const assignedCount = labels.filter((l) => eventAssignments[l] !== undefined).length
-  const availableCount = labels.length - assignedCount
+  const slots = layout.slots
+  const waiting = layout.waiting
+  const assignedCount = slots.filter((sl) => sl.vendor_id).length
+  const availableCount = slots.length - assignedCount
+  const totalRegistered = waiting.length + assignedCount
 
   const changeEvent = (e) => {
     setEventId(Number(e.target.value))
     setNotice('')
   }
 
-  const setSlot = (label, vendorId) =>
-    setAssignments((prev) => {
-      const next = { ...(prev[eventId] ?? {}) }
-      if (vendorId === null) delete next[label]
-      else next[label] = vendorId
-      return { ...prev, [eventId]: next }
-    })
-
-  const handleAssign = (vendorId) => {
-    // Later this will call the backend, which also notifies the vendor
-    setSlot(assigningSlot, vendorId)
-    setNotice(`${vendorName(vendorId)} was assigned to Stall ${assigningSlot}.`)
+  const handleAssign = async (vendorId) => {
+    const slot = assigningSlot
     setAssigningSlot(null)
+    try {
+      const res = await assignSlot(slot.slot_id, vendorId)
+      setNotice(res.message)
+      await refreshLayout()
+    } catch (err) {
+      setNotice(`Error: ${err.message}`)
+    }
   }
 
-  const handleUnassign = () => {
-    const name = vendorName(eventAssignments[unassigning])
-    setSlot(unassigning, null)
-    setNotice(`${name} was removed from Stall ${unassigning}.`)
+  const handleUnassign = async () => {
+    const slot = unassigning
     setUnassigning(null)
+    try {
+      await unassignSlot(slot.slot_id)
+      setNotice(`${slot.business_name} was removed from Stall ${slot.label}.`)
+      await refreshLayout()
+    } catch (err) {
+      setNotice(`Error: ${err.message}`)
+    }
   }
 
   return (
@@ -92,7 +106,7 @@ export default function Slots() {
       <div className="mb-6">
         <label className="mb-1 block text-sm font-medium">Event</label>
         <select
-          value={eventId}
+          value={selectedId}
           onChange={changeEvent}
           className="w-full max-w-md rounded border border-slate-300 bg-white px-3 py-2 text-sm"
         >
@@ -108,7 +122,7 @@ export default function Slots() {
       <div className="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div className="rounded-lg bg-white p-4 shadow">
           <p className="text-sm text-slate-500">Total stalls</p>
-          <p className="text-2xl font-bold">{labels.length}</p>
+          <p className="text-2xl font-bold">{slots.length}</p>
         </div>
         <div className="rounded-lg bg-white p-4 shadow">
           <p className="text-sm text-slate-500">Assigned</p>
@@ -151,14 +165,14 @@ export default function Slots() {
             </div>
 
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-5">
-              {labels.map((label) => {
-                const vendorId = eventAssignments[label]
-                const taken = vendorId !== undefined
+              {slots.map((slot) => {
+                const label = slot.label
+                const taken = Boolean(slot.vendor_id)
 
                 return (
                   <button
-                    key={label}
-                    onClick={() => (taken ? setUnassigning(label) : setAssigningSlot(label))}
+                    key={slot.slot_id}
+                    onClick={() => (taken ? setUnassigning(slot) : setAssigningSlot(slot))}
                     className={`min-h-20 rounded-lg border p-2 text-left text-sm transition ${
                       taken
                         ? 'border-green-300 bg-green-50 hover:bg-green-100'
@@ -168,7 +182,7 @@ export default function Slots() {
                     <p className="text-xs font-bold text-slate-500">{label}</p>
                     {taken ? (
                       <p className="mt-1 line-clamp-2 text-xs font-medium text-green-900">
-                        {vendorName(vendorId)}
+                        {slot.business_name}
                       </p>
                     ) : (
                       <p className="mt-1 text-xs text-slate-400">Open</p>
@@ -190,7 +204,7 @@ export default function Slots() {
             <h3 className="mb-3 font-semibold">Waiting for a stall</h3>
             {waiting.length === 0 ? (
               <p className="text-sm text-slate-500">
-                {event.preregistered.length === 0
+                {totalRegistered === 0
                   ? 'No vendors have pre-registered for this event yet.'
                   : 'Every pre-registered vendor has a stall.'}
               </p>
@@ -211,7 +225,7 @@ export default function Slots() {
       {/* Assign modal (mounted only while open so the selection resets) */}
       {assigningSlot && (
         <AssignVendorModal
-          slotLabel={assigningSlot}
+          slotLabel={assigningSlot.label}
           vendors={waiting}
           onAssign={handleAssign}
           onClose={() => setAssigningSlot(null)}
@@ -228,8 +242,8 @@ export default function Slots() {
         onCancel={() => setUnassigning(null)}
       >
         <p>
-          {unassigning && vendorName(eventAssignments[unassigning])} will be removed from Stall{' '}
-          {unassigning} and go back to the waiting list.
+          {unassigning?.business_name} will be removed from Stall {unassigning?.label} and go back to the
+          waiting list. They will be notified.
         </p>
       </ConfirmModal>
     </div>

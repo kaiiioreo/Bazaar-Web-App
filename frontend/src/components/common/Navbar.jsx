@@ -1,15 +1,28 @@
 import { useState } from 'react'
-import { Link, NavLink } from 'react-router-dom'
+import { Link, NavLink, useNavigate } from 'react-router-dom'
 import Icon from './Icon.jsx'
+import NotificationBell from './NotificationBell.jsx'
+import { homeFor, useAuth } from '../../context/AuthContext'
 
 const navItems = [
-  { label: 'Browse', href: '/#discover' },
-  { label: 'Vendors', href: '/#stalls' },
-  { label: 'Bazaar schedule', href: '/#events' },
+  { label: 'Browse', href: '/customer' },
+  { label: 'Vendors', href: '/customer#vendors-heading' },
+  { label: 'Bazaar schedule', href: '/customer/schedule' },
 ]
+
+const dashboardLabel = { admin: 'Admin dashboard', vendor: 'Vendor dashboard', customer: 'My account' }
 
 export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const { user, logout } = useAuth()
+  const navigate = useNavigate()
+  const dashboardPath = user?.role === 'customer' ? '/customer/account' : homeFor(user)
+
+  const handleLogout = () => {
+    logout()
+    setMenuOpen(false)
+    navigate('/')
+  }
 
   return (
     <header className="site-header">
@@ -26,27 +39,48 @@ export default function Navbar() {
 
         <nav className={`main-nav${menuOpen ? ' is-open' : ''}`} aria-label="Main navigation">
           {navItems.map((item) => (
-            <a key={item.label} href={item.href} onClick={() => setMenuOpen(false)}>
+            <Link key={item.label} to={item.href} onClick={() => setMenuOpen(false)}>
               {item.label}
-            </a>
+            </Link>
           ))}
           <a className="mobile-nav-link" href="/#for-makers" onClick={() => setMenuOpen(false)}>
             For makers
           </a>
           <div className="mobile-nav-actions">
-            <NavLink to="/login" onClick={() => setMenuOpen(false)}>Log in</NavLink>
-            <Link className="button button-dark" to="/register" onClick={() => setMenuOpen(false)}>
-              Create account <Icon name="arrow-up-right" size={16} />
-            </Link>
+            {user ? (
+              <>
+                <NavLink to={dashboardPath} onClick={() => setMenuOpen(false)}>{dashboardLabel[user.role]}</NavLink>
+                <button className="button button-dark" type="button" onClick={handleLogout}>Log out</button>
+              </>
+            ) : (
+              <>
+                <NavLink to="/login" onClick={() => setMenuOpen(false)}>Log in</NavLink>
+                <Link className="button button-dark" to="/register" onClick={() => setMenuOpen(false)}>
+                  Create account <Icon name="arrow-up-right" size={16} />
+                </Link>
+              </>
+            )}
           </div>
         </nav>
 
         <div className="nav-actions">
           <a className="maker-link" href="/#for-makers">For makers</a>
-          <NavLink className="login-link" to="/login">Log in</NavLink>
-          <Link className="button button-dark nav-join" to="/register">
-            Create account <Icon name="arrow-up-right" size={16} />
-          </Link>
+          {user ? (
+            <>
+              <NotificationBell />
+              <NavLink className="login-link" to={dashboardPath}>{dashboardLabel[user.role]}</NavLink>
+              <button className="button button-dark nav-join" type="button" onClick={handleLogout}>
+                Log out
+              </button>
+            </>
+          ) : (
+            <>
+              <NavLink className="login-link" to="/login">Log in</NavLink>
+              <Link className="button button-dark nav-join" to="/register">
+                Create account <Icon name="arrow-up-right" size={16} />
+              </Link>
+            </>
+          )}
         </div>
 
         <button

@@ -1,7 +1,11 @@
 import { formatDate } from './vendorHelpers'
 
 // PreRegisterForBazaar() / UpdateVendorSchedule()
-export default function SchedulePanel({ events, registeredIds, onPreRegister }) {
+// events come from GET /api/vendor/events (with my_status and slot_label).
+export default function SchedulePanel({ events, onPreRegister, onWithdraw }) {
+  if (events.length === 0) {
+    return <p className="text-stone-600">No upcoming bazaars yet. The Admin will announce new ones here.</p>
+  }
   return (
     <ul className="max-w-2xl space-y-3">
       {events.map((ev) => (
@@ -16,12 +20,22 @@ export default function SchedulePanel({ events, registeredIds, onPreRegister }) 
               {formatDate(ev.date, { weekday: 'short', month: 'short', day: 'numeric' })} at {ev.location}
             </p>
           </div>
-          {registeredIds.includes(ev.event_id) ? (
-            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">Pre-registered</span>
-          ) : (
+          {ev.my_status === 'assigned' && (
+            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">Stall {ev.slot_label}</span>
+          )}
+          {ev.my_status === 'pre_registered' && (
+            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">Pre-registered · waiting for stall</span>
+          )}
+          {ev.my_status ? (
+            <button onClick={() => onWithdraw(ev)} className="rounded-md border border-stone-300 px-3 py-2 text-xs hover:bg-stone-100">
+              Withdraw
+            </button>
+          ) : ev.registration_open ? (
             <button onClick={() => onPreRegister(ev.event_id)} className="rounded-md bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700">
               Pre-register
             </button>
+          ) : (
+            <span className="text-xs text-stone-500">Registration closed</span>
           )}
         </li>
       ))}

@@ -1,6 +1,7 @@
-import { Route, Routes } from 'react-router-dom'
+import { Route, Routes, useLocation } from 'react-router-dom'
 import ChatbotWidget from './components/common/ChatbotWidget.jsx'
 import Navbar from './components/common/Navbar.jsx'
+import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 import AuthPage from './pages/AuthPage.jsx'
 import HomePage from './pages/HomePage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
@@ -10,6 +11,7 @@ import SearchResults from './pages/customer/SearchResults'
 import VendorProfile from './pages/customer/VendorProfile'
 import Schedule from './pages/customer/Schedule'
 import Favorites from './pages/customer/Favorites'
+import Account from './pages/customer/Account'
 import AdminLayout from './layouts/AdminLayout'
 import Dashboard from './pages/admin/Dashboard'
 import Applications from './pages/admin/Applications'
@@ -22,6 +24,10 @@ import VendorDashboard from './pages/vendor/VendorDashboard'
 import './App.css'
 
 export default function App() {
+  const { pathname } = useLocation()
+  // The chatbot is for guests and customers (SRS 3.1.6.2); vendors have their own assistant.
+  const showChatbot = !pathname.startsWith('/admin') && !pathname.startsWith('/vendor')
+
   return (
     <div className="app-shell">
       <Navbar />
@@ -32,21 +38,23 @@ export default function App() {
           <Route path="/login" element={<AuthPage mode="login" />} />
           <Route path="/register" element={<AuthPage mode="register" />} />
           <Route path="/forgot-password" element={<AuthPage mode="forgot" />} />
+          <Route path="/reset-password" element={<AuthPage mode="reset" />} />
 
-          {/* Customer Routes */}
+          {/* Customer Routes: guests can browse; favorites and account need a customer login */}
           <Route path="/customer" element={<CustomerLayout />}>
             <Route index element={<CustomerHome />} />
             <Route path="search" element={<SearchResults />} />
             <Route path="vendors/:id" element={<VendorProfile />} />
             <Route path="schedule" element={<Schedule />} />
-            <Route path="favorites" element={<Favorites />} />
+            <Route path="favorites" element={<ProtectedRoute roles={['customer']}><Favorites /></ProtectedRoute>} />
+            <Route path="account" element={<ProtectedRoute roles={['customer']}><Account /></ProtectedRoute>} />
           </Route>
 
           {/* Vendor Route */}
-          <Route path="/vendor" element={<VendorDashboard />} />
+          <Route path="/vendor" element={<ProtectedRoute roles={['vendor']}><VendorDashboard /></ProtectedRoute>} />
 
           {/* Admin Routes */}
-          <Route path="/admin" element={<AdminLayout />}>
+          <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminLayout /></ProtectedRoute>}>
             <Route index element={<Dashboard />} />
             <Route path="applications" element={<Applications />} />
             <Route path="vendors" element={<Vendors />} />
@@ -60,7 +68,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
-      <ChatbotWidget />
+      {showChatbot && <ChatbotWidget />}
     </div>
   )
 }

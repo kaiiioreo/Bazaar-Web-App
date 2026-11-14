@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { reviews as initialReviews } from '../../mock/reviews'
+import { getReviews, updateReview } from '../../api/admin'
+import useApi from '../../hooks/useApi'
+import LoadState from '../../components/common/LoadState'
 import StatusBadge from '../../components/common/StatusBadge'
 import StarRating from '../../components/common/StarRating'
 import ConfirmModal from '../../components/admin/ConfirmModal'
@@ -11,7 +13,8 @@ const tabs = [
 ]
 
 export default function Reviews() {
-  const [reviews, setReviews] = useState(initialReviews)
+  const { data, loading, error, reload, setData: setReviews } = useApi(() => getReviews(), [])
+  const reviews = data ?? []
   const [tab, setTab] = useState('flagged')
   const [search, setSearch] = useState('')
   const [toRemove, setToRemove] = useState(null)
@@ -37,23 +40,26 @@ export default function Reviews() {
     })
     .sort((a, b) => b.created_at.localeCompare(a.created_at))
 
-  const update = (id, changes) =>
-    setReviews((prev) => prev.map((r) => (r.review_id === id ? { ...r, ...changes } : r)))
-
-  const keepReview = (r) => {
-    update(r.review_id, { ai_flag: false })
-    setNotice(`The AI flag was dismissed. ${r.customer_name}'s review stays visible.`)
+  // Saves a change on the server, then shows the returned review.
+  const update = async (id, changes, message) => {
+    try {
+      const updated = await updateReview(id, changes)
+      setReviews((prev) => prev.map((r) => (r.review_id === id ? updated : r)))
+      setNotice(message)
+    } catch (err) {
+      setNotice(`Error: ${err.message}`)
+    }
   }
 
-  const restoreReview = (r) => {
-    update(r.review_id, { status: 'visible' })
-    setNotice(`${r.customer_name}'s review was restored.`)
-  }
+  const keepReview = (r) =>
+    update(r.review_id, { ai_flag: false }, `The AI flag was dismissed. ${r.customer_name}'s review stays visible.`)
+
+  const restoreReview = (r) => update(r.review_id, { status: 'visible' }, `${r.customer_name}'s review was restored.`)
 
   const confirmRemove = () => {
-    update(toRemove.review_id, { status: 'removed' })
-    setNotice(`${toRemove.customer_name}'s review was removed from the public page.`)
+    const r = toRemove
     setToRemove(null)
+    update(r.review_id, { status: 'removed' }, `${r.customer_name}'s review was removed from the public page.`)
   }
 
   const emptyMessage = {
@@ -65,6 +71,7 @@ export default function Reviews() {
   return (
     <div>
       <h2 className="mb-6 text-2xl font-bold">Review Moderation</h2>
+      {(loading || error) && <LoadState loading={loading} error={error} onRetry={reload} />}
 
       {notice && (
         <div className="mb-4 flex items-center justify-between rounded border border-green-200 bg-green-50 px-4 py-3 text-sm text-green-800">

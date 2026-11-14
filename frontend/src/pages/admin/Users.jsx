@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { users as initialUsers } from '../../mock/users'
+import { getUsers, sendPasswordReset, setUserStatus } from '../../api/admin'
+import useApi from '../../hooks/useApi'
+import LoadState from '../../components/common/LoadState'
 import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/admin/ConfirmModal'
 
@@ -11,7 +13,9 @@ const roleStyles = {
 }
 
 export default function Users() {
-  const [users, setUsers] = useState(initialUsers)
+  const { data, loading, error, reload, setData: setUsers } = useApi(() => getUsers(), [])
+  // Admin accounts are managed by the Bazaar team, so only customers and vendors are listed.
+  const users = (data ?? []).filter((u) => u.role !== 'admin')
   const [roleFilter, setRoleFilter] = useState('all')
   const [search, setSearch] = useState('')
   const [pending, setPending] = useState(null) // { user, action: 'reset' | 'toggle' }
@@ -27,22 +31,22 @@ export default function Users() {
     return matchesRole && matchesSearch
   })
 
-  const confirmAction = () => {
+  const confirmAction = async () => {
     const { user, action } = pending
-
-    if (action === 'reset') {
-      // Later this will call the backend, which emails a reset link to the user
-      setNotice(`A password reset link was sent to ${user.email}.`)
-    } else {
-      const nextStatus = user.status === 'active' ? 'suspended' : 'active'
-      setUsers((prev) =>
-        prev.map((u) => (u.user_id === user.user_id ? { ...u, status: nextStatus } : u))
-      )
-      setNotice(
-        `${user.name}'s account was ${nextStatus === 'suspended' ? 'suspended' : 'reactivated'}.`
-      )
-    }
     setPending(null)
+    try {
+      if (action === 'reset') {
+        const res = await sendPasswordReset(user.user_id)
+        setNotice(res.dev_reset_link ? `${res.message} (Email is not set up yet. Link: ${res.dev_reset_link})` : res.message)
+      } else {
+        const nextStatus = user.status === 'active' ? 'suspended' : 'active'
+        const updated = await setUserStatus(user.user_id, nextStatus)
+        setUsers((prev) => prev.map((u) => (u.user_id === updated.user_id ? updated : u)))
+        setNotice(`${user.name}'s account was ${nextStatus === 'suspended' ? 'suspended' : 'reactivated'}.`)
+      }
+    } catch (err) {
+      setNotice(`Error: ${err.message}`)
+    }
   }
 
   const isReset = pending?.action === 'reset'
@@ -66,6 +70,7 @@ export default function Users() {
   return (
     <div>
       <h2 className="mb-6 text-2xl font-bold">User Management</h2>
+      {(loading || error) && <LoadState loading={loading} error={error} onRetry={reload} />}
 
       {/* Success notice */}
       {notice && (

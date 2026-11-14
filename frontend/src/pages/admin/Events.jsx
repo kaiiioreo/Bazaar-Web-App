@@ -1,5 +1,7 @@
 import { useState } from 'react'
-import { events as initialEvents } from '../../mock/events'
+import { cancelEvent, createEvent, getEvents, setRegistration, updateEvent } from '../../api/admin'
+import useApi from '../../hooks/useApi'
+import LoadState from '../../components/common/LoadState'
 import StatusBadge from '../../components/common/StatusBadge'
 import ConfirmModal from '../../components/admin/ConfirmModal'
 import EventFormModal from '../../components/admin/EventFormModal'
@@ -15,7 +17,9 @@ const formatDate = (iso) =>
   })
 
 export default function Events() {
-  const [events, setEvents] = useState(initialEvents)
+  const { data, loading, error, reload, setData: setEvents } = useApi(() => getEvents(), [])
+  const events = data ?? []
+  const [actionError, setActionError] = useState('')
   const [filter, setFilter] = useState('upcoming')
   const [expandedId, setExpandedId] = useState(null)
   const [formState, setFormState] = useState(null) // { mode: 'create' | 'edit', event? }
@@ -28,36 +32,40 @@ export default function Events() {
     .filter((e) => filter === 'all' || e.status === filter)
     .sort((a, b) => a.date.localeCompare(b.date))
 
-  const handleSave = (data) => {
-    if (formState.mode === 'create') {
-      const nextId = Math.max(0, ...events.map((e) => e.event_id)) + 1
-      setEvents((prev) => [
-        ...prev,
-        { ...data, event_id: nextId, status: 'upcoming', registration_open: true, preregistered: [] },
-      ])
-      setFilter('upcoming')
-    } else {
-      setEvents((prev) =>
-        prev.map((e) => (e.event_id === formState.event.event_id ? { ...e, ...data } : e))
-      )
+  // Replaces one event in the list with the version the server sent back.
+  const replace = (updated) =>
+    setEvents((prev) => prev.map((e) => (e.event_id === updated.event_id ? updated : e)))
+
+  const attempt = async (action) => {
+    setActionError('')
+    try {
+      await action()
+    } catch (err) {
+      setActionError(err.message)
     }
-    setFormState(null)
   }
 
-  const toggleRegistration = (id) =>
-    setEvents((prev) =>
-      prev.map((e) => (e.event_id === id ? { ...e, registration_open: !e.registration_open } : e))
-    )
+  const handleSave = (form) => {
+    const { mode, event } = formState
+    setFormState(null)
+    attempt(async () => {
+      if (mode === 'create') {
+        const created = await createEvent(form)
+        setEvents((prev) => [...prev, created])
+        setFilter('upcoming')
+      } else {
+        replace(await updateEvent(event.event_id, form))
+      }
+    })
+  }
+
+  const toggleRegistration = (ev) =>
+    attempt(async () => replace(await setRegistration(ev.event_id, !ev.registration_open)))
 
   const confirmCancel = () => {
-    setEvents((prev) =>
-      prev.map((e) =>
-        e.event_id === toCancel.event_id
-          ? { ...e, status: 'cancelled', registration_open: false }
-          : e
-      )
-    )
+    const ev = toCancel
     setToCancel(null)
+    attempt(async () => replace(await cancelEvent(ev.event_id)))
   }
 
   return (
@@ -71,6 +79,9 @@ export default function Events() {
           + Create event
         </button>
       </div>
+
+      {actionError && <p className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{actionError}</p>}
+      {(loading || error) && <LoadState loading={loading} error={error} onRetry={reload} />}
 
       {/* Filter tabs */}
       <div className="mb-4 flex flex-wrap gap-2">
@@ -125,7 +136,7 @@ export default function Events() {
                       Edit
                     </button>
                     <button
-                      onClick={() => toggleRegistration(ev.event_id)}
+                      onClick={() => toggleRegistration(ev)}
                       className="rounded border border-slate-300 px-3 py-1 text-sm hover:bg-slate-50"
                     >
                       {ev.registration_open ? 'Close registration' : 'Open registration'}
@@ -188,7 +199,9 @@ export default function Events() {
                       {ev.preregistered.map((v) => (
                         <li key={v.vendor_id} className="flex justify-between px-3 py-2">
                           <span className="font-medium">{v.business_name}</span>
-                          <span className="text-slate-500">Registered {v.registered_at}</span>
+                          <span className="text-slate-500">
+                            {v.slot_label ? `Stall ${v.slot_label} · ` : 'Waiting for stall · '}Registered {v.registered_at}
+                          </span>
                         </li>
                       ))}
                     </ul>

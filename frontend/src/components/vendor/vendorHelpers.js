@@ -5,7 +5,8 @@ export const STOCK = {
   out_of_stock: { label: 'Out of stock', cls: 'bg-red-100 text-red-800' },
 }
 
-export const CATEGORIES = ['Accessories', 'Home', 'Food', 'Crafts', 'Clothing']
+// Must match backend/src/lib/constants.js
+export const CATEGORIES = ['Food', 'Snacks', 'Drinks', 'Produce', 'Baked Goods', 'Crafts', 'Accessories', 'Clothing', 'Home', 'Plants', 'Other']
 
 // formatDate('2026-11-07', { month: 'short', day: 'numeric' }) -> 'Nov 7'
 export function formatDate(iso, options) {

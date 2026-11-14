@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import Logo from './Logo'
 import { readImage } from './imageUtils'
+import { CATEGORIES } from './vendorHelpers'
 
 const field = 'mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600'
 
@@ -8,6 +9,21 @@ const field = 'mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm 
 export default function ProfilePanel({ profile, onSave }) {
   const [form, setForm] = useState(profile)
   const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+  const [busy, setBusy] = useState(false)
+  const submit = async (e) => {
+    e.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      await onSave(form)
+      setSaved(true)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
+  }
   const set = (k) => (e) => { setForm({ ...form, [k]: e.target.value }); setSaved(false) }
   const onLogo = async (e) => {
     const file = e.target.files[0]
@@ -16,7 +32,7 @@ export default function ProfilePanel({ profile, onSave }) {
 
   return (
     <form
-      onSubmit={(e) => { e.preventDefault(); onSave(form); setSaved(true) }}
+      onSubmit={submit}
       className="max-w-lg space-y-4 rounded-lg border border-stone-200 bg-white p-6"
     >
       <div className="flex items-center gap-4">
@@ -34,6 +50,11 @@ export default function ProfilePanel({ profile, onSave }) {
       </div>
       <label className="block text-sm">Business name
         <input required value={form.business_name} onChange={set('business_name')} className={field} />
+      </label>
+      <label className="block text-sm">Category
+        <select value={form.category} onChange={set('category')} className={field}>
+          {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+        </select>
       </label>
       <label className="block text-sm">Description
         <textarea rows={4} value={form.description} onChange={set('description')} className={field} />
@@ -56,8 +77,9 @@ export default function ProfilePanel({ profile, onSave }) {
         </label>
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" className="rounded-md bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700">Save changes</button>
+        <button type="submit" disabled={busy} className="rounded-md bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700 disabled:opacity-60">{busy ? 'Saving…' : 'Save changes'}</button>
         {saved && <span className="text-sm text-green-700" role="status">Profile saved</span>}
+        {error && <span className="text-sm text-red-700" role="alert">{error}</span>}
       </div>
     </form>
   )

@@ -1,59 +1,155 @@
-import { useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import VendorLayout from '../../layouts/VendorLayout'
 import ProductTable from '../../components/vendor/ProductTable'
 import ProductForm from '../../components/vendor/ProductForm'
 import ProfilePanel from '../../components/vendor/ProfilePanel'
 import SchedulePanel from '../../components/vendor/SchedulePanel'
 import AIAssistantPanel from '../../components/vendor/AIAssistantPanel'
+import ApplicationPanel from '../../components/vendor/ApplicationPanel'
 import StatCard from '../../components/vendor/StatCard'
 import Logo from '../../components/vendor/Logo'
-import usePersistedState from '../../components/vendor/usePersistedState'
+import LoadState from '../../components/common/LoadState'
 import { STOCK, formatDate } from '../../components/vendor/vendorHelpers'
-import { vendorProfile, vendorProducts, bazaarEvents, vendorSchedule } from '../../mock/vendorUImock'
+import * as vendorApi from '../../api/vendor'
+import { useAuth } from '../../context/AuthContext'
 
 const TABS = ['Profile', 'Products', 'Schedule', 'AI assistant']
 
-export default function VendorDashboard() {
+const loadVendorData = () => Promise.all([vendorApi.getProfile(), vendorApi.getProducts(), vendorApi.getEvents()])
+
+// Shown until the Admin approves the vendor's application.
+function PendingVendor() {
+  const { user, refresh } = useAuth()
+  const [application, setApplication] = useState(undefined)
+  const [error, setError] = useState('')
+
+  useEffect(() => {
+    vendorApi.getApplication().then(setApplication).catch((err) => setError(err.message))
+  }, [])
+
+  const submit = async (form) => {
+    const app = await vendorApi.submitApplication(form)
+    setApplication(app)
+    await refresh()
+  }
+
+  return (
+    <div className="min-h-screen bg-stone-50 p-4 text-stone-900 md:p-8">
+      <div className="mx-auto max-w-5xl">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <p className="text-sm text-stone-500">Bazaar Vendor</p>
+            <h1 className="text-2xl font-semibold">Welcome, {user.name.split(' ')[0]}</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={refresh} className="rounded-md border border-stone-300 px-3 py-1.5 text-sm hover:bg-stone-100">Check status</button>
+          </div>
+        </div>
+        {error && <LoadState error={error} />}
+        {application === undefined && !error ? (
+          <LoadState loading />
+        ) : (
+          <ApplicationPanel key={application?.application_id ?? 'new'} application={application} onSubmit={submit} />
+        )}
+      </div>
+    </div>
+  )
+}
+
+function ApprovedVendor() {
+  const { logout } = useAuth()
   const [tab, setTab] = useState('Products')
-  // "v2" keys: older saved data used a different shape.
-  const [products, setProducts] = usePersistedState('vendor.products.v2', vendorProducts)
-  const [profile, setProfile] = usePersistedState('vendor.profile.v2', vendorProfile)
-  const [schedule, setSchedule] = useState(vendorSchedule)
+  const [products, setProducts] = useState([])
+  const [profile, setProfile] = useState(null)
+  const [events, setEvents] = useState([])
+  const [loadError, setLoadError] = useState('')
   const [editing, setEditing] = useState(null) // null = closed, {} = new, product = edit
   const [query, setQuery] = useState('')
   const [stockFilter, setStockFilter] = useState('all')
   const [toast, setToast] = useState('')
 
+  const apply = useCallback(([p, list, evs]) => {
+    setProfile(p)
+    setProducts(list)
+    setEvents(evs)
+  }, [])
+
+  useEffect(() => {
+    let active = true
+    loadVendorData()
+      .then((result) => active && apply(result))
+      .catch((err) => active && setLoadError(err.message))
+    return () => {
+      active = false
+    }
+  }, [apply])
+
+  const load = () => {
+    setLoadError('')
+    loadVendorData().then(apply).catch((err) => setLoadError(err.message))
+  }
+
   const notify = (msg) => {
     setToast(msg)
     setTimeout(() => setToast(''), 2500)
   }
+  // Runs an API action and shows errors in the toast.
+  const run = async (action, success) => {
+    try {
+      await action()
+      if (success) notify(success)
+    } catch (err) {
+      notify(err.message)
+    }
+  }
 
-  const saveProduct = (p) => {
-    setProducts((list) =>
-      p.product_id
-        ? list.map((x) => (x.product_id === p.product_id ? p : x))
-        : [...list, { ...p, product_id: Date.now(), vendor_id: profile.vendor_id }],
-    )
+  if (loadError) return <div className="p-8"><LoadState error={loadError} onRetry={load} /></div>
+  if (!profile) return <LoadState loading />
+
+  const saveProduct = async (p) => {
+    // Errors bubble up to ProductForm, which shows them in the form.
+    if (p.product_id) {
+      const saved = await vendorApi.updateProduct(p.product_id, p)
+      setProducts((list) => list.map((x) => (x.product_id === saved.product_id ? saved : x)))
+    } else {
+      const saved = await vendorApi.createProduct(p)
+      setProducts((list) => [...list, saved])
+    }
     setEditing(null)
     notify(p.product_id ? 'Product updated' : 'Product added')
   }
-  const changeStock = (id, stock_status) => {
-    setProducts((l) => l.map((p) => (p.product_id === id ? { ...p, stock_status } : p)))
-    notify(`Stock status set to ${STOCK[stock_status].label.toLowerCase()}`)
-  }
+  const changeStock = (id, stock_status) =>
+    run(async () => {
+      const saved = await vendorApi.updateStock(id, stock_status)
+      setProducts((l) => l.map((p) => (p.product_id === id ? saved : p)))
+    }, `Stock status set to ${STOCK[stock_status].label.toLowerCase()}`)
   const deleteProduct = (id) => {
     if (!window.confirm('Delete this product?')) return
-    setProducts((l) => l.filter((p) => p.product_id !== id))
-    notify('Product deleted')
+    run(async () => {
+      await vendorApi.deleteProduct(id)
+      setProducts((l) => l.filter((p) => p.product_id !== id))
+    }, 'Product deleted')
   }
-  const preRegister = (event_id) => {
-    setSchedule((l) => [...l, { schedule_id: Date.now(), vendor_id: profile.vendor_id, event_id, status: 'PreRegistered' }])
-    notify('Pre-registered for bazaar')
+  const preRegister = (event_id) =>
+    run(async () => {
+      await vendorApi.preRegister(event_id)
+      setEvents(await vendorApi.getEvents())
+    }, 'Pre-registered. The Admin will assign your stall.')
+  const withdraw = (ev) => {
+    if (!window.confirm(`Withdraw from ${ev.name}?${ev.slot_label ? ` You will lose Stall ${ev.slot_label}.` : ''}`)) return
+    run(async () => {
+      await vendorApi.withdraw(ev.event_id)
+      setEvents(await vendorApi.getEvents())
+    }, 'Withdrawn from bazaar')
+  }
+  const saveProfile = async (p) => {
+    const saved = await vendorApi.updateProfile(p)
+    setProfile(saved)
+    notify('Profile saved')
   }
 
-  const registeredIds = schedule.map((s) => s.event_id)
-  const nextBazaar = bazaarEvents.find((e) => registeredIds.includes(e.event_id))
+  const nextBazaar = events.find((e) => e.my_status)
   const count = (s) => products.filter((p) => p.stock_status === s).length
   const visible = products.filter(
     (p) =>
@@ -64,22 +160,25 @@ export default function VendorDashboard() {
 
   return (
     <>
-      <VendorLayout tabs={TABS} tab={tab} onTab={setTab} profile={profile}>
+      <VendorLayout tabs={TABS} tab={tab} onTab={setTab} profile={profile} onLogout={logout}>
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-xl font-semibold">{tab === 'Products' ? 'Product listings' : tab}</h1>
             {tab === 'Products' && (
-              <p className="mt-1 flex items-center gap-2 text-sm text-stone-500">
+              <div className="mt-1 flex items-center gap-2 text-sm text-stone-500">
                 <Logo profile={profile} size="h-5 w-5" text="text-xs" />
                 {profile.business_name}
-              </p>
+                <Link to={`/customer/vendors/${profile.vendor_id}`} className="text-teal-700 hover:underline">View public page</Link>
+              </div>
             )}
           </div>
-          {tab === 'Products' && (
-            <button onClick={() => setEditing({})} className="rounded-md bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700">
-              Add product
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {tab === 'Products' && (
+              <button onClick={() => setEditing({})} className="rounded-md bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700">
+                Add product
+              </button>
+            )}
+          </div>
         </div>
 
         {tab === 'Products' && (
@@ -91,7 +190,7 @@ export default function VendorDashboard() {
               <StatCard
                 label="Next bazaar"
                 value={nextBazaar ? formatDate(nextBazaar.date, { month: 'short', day: 'numeric' }) : 'None'}
-                hint={nextBazaar ? nextBazaar.location : 'Pre-register in Schedule'}
+                hint={nextBazaar ? `${nextBazaar.location}${nextBazaar.slot_label ? ` · Stall ${nextBazaar.slot_label}` : ''}` : 'Pre-register in Schedule'}
               />
             </div>
 
@@ -133,8 +232,8 @@ export default function VendorDashboard() {
           </>
         )}
 
-        {tab === 'Profile' && <ProfilePanel profile={profile} onSave={(p) => { setProfile(p); notify('Profile saved') }} />}
-        {tab === 'Schedule' && <SchedulePanel events={bazaarEvents} registeredIds={registeredIds} onPreRegister={preRegister} />}
+        {tab === 'Profile' && <ProfilePanel profile={profile} onSave={saveProfile} />}
+        {tab === 'Schedule' && <SchedulePanel events={events} onPreRegister={preRegister} onWithdraw={withdraw} />}
         {tab === 'AI assistant' && <AIAssistantPanel />}
       </VendorLayout>
 
@@ -148,4 +247,9 @@ export default function VendorDashboard() {
       )}
     </>
   )
+}
+
+export default function VendorDashboard() {
+  const { user } = useAuth()
+  return user.vendor_approved ? <ApprovedVendor /> : <PendingVendor />
 }

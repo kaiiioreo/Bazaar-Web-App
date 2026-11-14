@@ -1,21 +1,51 @@
 import { useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import Icon from '../components/common/Icon.jsx'
+import { forgotPassword, resetPassword } from '../api/auth'
+import { homeFor, useAuth } from '../context/AuthContext'
 
 export default function AuthPage({ mode }) {
   const isRegister = mode === 'register'
-  const isForgot = mode === 'forgot'
+  const isReset = mode === 'reset'
+  const isForgot = mode === 'forgot' || isReset
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const { login, register } = useAuth()
   const [accountType, setAccountType] = useState(() => (
     searchParams.get('type') === 'vendor' ? 'vendor' : 'customer'
   ))
   const [notice, setNotice] = useState('')
+  const [error, setError] = useState('')
+  const [devLink, setDevLink] = useState('')
+  const [busy, setBusy] = useState(false)
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault()
-    setNotice(isForgot
-      ? 'Password reset is part of the account service and will be available when the backend is connected.'
-      : 'This account preview is not connected to an account service yet.')
+    const form = Object.fromEntries(new FormData(event.currentTarget))
+    setError('')
+    setNotice('')
+    setBusy(true)
+    try {
+      if (isReset) {
+        if (form.password !== form.confirm) throw new Error('The two passwords do not match.')
+        const res = await resetPassword(searchParams.get('token') || '', form.password)
+        setNotice(res.message)
+      } else if (isForgot) {
+        const res = await forgotPassword(form.email)
+        setNotice(res.message)
+        setDevLink(res.dev_reset_link || '')
+      } else {
+        const user = isRegister
+          ? await register({ name: form.name, email: form.email, password: form.password, role: accountType })
+          : await login(form.email, form.password)
+        const next = searchParams.get('next')
+        navigate(next && next.startsWith('/') ? next : homeFor(user), { replace: true })
+      }
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
@@ -35,7 +65,9 @@ export default function AuthPage({ mode }) {
           </h1>
           <p>{isRegister
             ? 'Create a customer or vendor account to get started with Bazaar.'
-            : isForgot
+            : isReset
+              ? 'Choose a new password for your Bazaar account.'
+              : isForgot
               ? 'Enter the email address linked to your Bazaar account.'
               : 'Sign in to your Bazaar account and continue where you left off.'}
           </p>
@@ -59,14 +91,18 @@ export default function AuthPage({ mode }) {
           </span>
           <h2>{isRegister
             ? 'Create your account.'
-            : isForgot
+            : isReset
+              ? 'Set a new password.'
+              : isForgot
               ? 'Forgot your password?'
               : 'Welcome back.'}
           </h2>
           <p className="auth-intro">{isRegister
             ? 'Choose how you’ll use Bazaar. You can browse as a guest without creating an account.'
-            : isForgot
-              ? 'We’ll send a reset link if the account service is available.'
+            : isReset
+              ? 'Use at least 8 characters with a letter and a number.'
+              : isForgot
+              ? 'We’ll email you a link to reset your password.'
               : 'Use your Bazaar account email and password to sign in.'}
           </p>
 
@@ -99,10 +135,24 @@ export default function AuthPage({ mode }) {
                 </label>
               </>
             )}
-            <label>
-              Email address
-              <input autoComplete="email" name="email" placeholder="you@example.com" required type="email" />
-            </label>
+            {!isReset && (
+              <label>
+                Email address
+                <input autoComplete="email" name="email" placeholder="you@example.com" required type="email" />
+              </label>
+            )}
+            {isReset && (
+              <>
+                <label>
+                  New password
+                  <input autoComplete="new-password" minLength="8" name="password" placeholder="At least 8 characters" required type="password" />
+                </label>
+                <label>
+                  Confirm new password
+                  <input autoComplete="new-password" minLength="8" name="confirm" placeholder="Type it again" required type="password" />
+                </label>
+              </>
+            )}
             {!isForgot && (
               <label>
                 Password
@@ -119,18 +169,33 @@ export default function AuthPage({ mode }) {
             {!isRegister && !isForgot && (
               <Link className="forgot-link" to="/forgot-password">Forgot password?</Link>
             )}
-            <button className="button button-dark auth-submit" type="submit">
-              {isRegister
+            <button className="button button-dark auth-submit" type="submit" disabled={busy}>
+              {busy
+                ? 'Please wait…'
+                : isRegister
                 ? `Create ${accountType} account`
-                : isForgot
+                : isReset
+                  ? 'Save new password'
+                  : isForgot
                   ? 'Send reset link'
                   : 'Log in to Bazaar'}
               <Icon name="arrow" size={18} />
             </button>
           </form>
 
+          {error && <p className="auth-notice" role="alert" style={{ color: '#b91c1c' }}>{error}</p>}
           {notice && <p className="auth-notice" role="status"><Icon name="check" size={17} /> {notice}</p>}
+          {devLink && (
+            <p className="auth-notice" style={{ fontSize: '0.85rem' }}>
+              Email is not set up yet, so here is your reset link (development only):{' '}
+              <Link to={devLink.replace(/^https?:\/\/[^/]+/, '')}>Open reset page</Link>
+            </p>
+          )}
+          {isReset && notice && <p className="auth-switch"><Link to="/login">Go to log in</Link></p>}
 
+          {isRegister && accountType === 'vendor' && (
+            <p className="auth-admin-note">After signing up, you’ll fill in a short vendor application for the Admin to review.</p>
+          )}
           {isRegister && (
             <p className="auth-admin-note">Admin accounts are provided by the Bazaar team and can’t be registered here.</p>
           )}

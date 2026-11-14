@@ -1,41 +1,32 @@
 import { useState } from 'react'
 import Icon from './Icon.jsx'
+import { chat } from '../../api/ai'
 
-const suggestions = ['Find a vendor', 'Check bazaar dates']
-
-function getReply(message) {
-  const text = message.toLowerCase()
-
-  if (text.includes('weekend') || text.includes('event') || text.includes('market')) {
-    return 'You can find bazaar dates, locations, and attending vendors in the schedule section. This preview does not have live event data yet.'
-  }
-  if (text.includes('product') || text.includes('search') || text.includes('gift') || text.includes('present')) {
-    return 'Try searching for a product or vendor using everyday words. Product search will be connected when the marketplace data is available.'
-  }
-  if (text.includes('vendor') || text.includes('stall') || text.includes('maker')) {
-    return 'Browse the vendor listings to see who is participating. Vendors can create an account to get started.'
-  }
-  if (text.includes('favorite') || text.includes('save') || text.includes('review')) {
-    return 'Saving favorites and leaving vendor reviews are customer account features. You can create a customer account to use them.'
-  }
-  return 'I can help with finding products and vendors or checking the bazaar schedule. What are you looking for?'
-}
+const suggestions = ['When is the next bazaar?', 'Who sells coffee?']
 
 export default function ChatbotWidget() {
   const [isOpen, setIsOpen] = useState(false)
   const [input, setInput] = useState('')
   const [messages, setMessages] = useState([])
+  const [sending, setSending] = useState(false)
 
-  function sendMessage(value = input) {
+  // ChatbotRespond(): sends the conversation to the backend AI module.
+  async function sendMessage(value = input) {
     const text = value.trim()
-    if (!text) return
+    if (!text || sending) return
 
-    setMessages((current) => [
-      ...current,
-      { from: 'you', text },
-      { from: 'bazaar', text: getReply(text) },
-    ])
+    const next = [...messages, { from: 'you', text }]
+    setMessages(next)
     setInput('')
+    setSending(true)
+    try {
+      const reply = await chat(next.map((m) => ({ role: m.from === 'you' ? 'user' : 'assistant', content: m.text })))
+      setMessages((current) => [...current, { from: 'bazaar', text: reply }])
+    } catch (err) {
+      setMessages((current) => [...current, { from: 'bazaar', text: `Sorry, I couldn't answer that right now. ${err.message}` }])
+    } finally {
+      setSending(false)
+    }
   }
 
   return (
@@ -61,6 +52,7 @@ export default function ChatbotWidget() {
                 {message.text}
               </div>
             ))}
+            {sending && <div className="chat-bubble chat-bubble-bazaar">Typing…</div>}
             {messages.length === 0 && (
               <div className="chat-suggestions">
                 {suggestions.map((suggestion) => (
@@ -85,11 +77,11 @@ export default function ChatbotWidget() {
               placeholder="Ask us anything..."
               value={input}
             />
-            <button type="submit" aria-label="Send message" disabled={!input.trim()}>
+            <button type="submit" aria-label="Send message" disabled={!input.trim() || sending}>
               <Icon name="send" size={17} />
             </button>
           </form>
-          <p className="chat-note">Demo preview — chat service is not connected</p>
+          <p className="chat-note">AI answers may be wrong. Check the schedule for exact details.</p>
         </section>
       )}
       <button
