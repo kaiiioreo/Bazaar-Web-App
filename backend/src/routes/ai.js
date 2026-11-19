@@ -6,11 +6,11 @@ import { HttpError, todayUTC } from '../lib/http.js'
 import { CATEGORIES } from '../lib/constants.js'
 import { dateOnly } from '../lib/serialize.js'
 import { optionalAuth, requireAuth, requireRole } from '../middleware/auth.js'
-import { aiEnabled, chatReply, vendorAssistReply, generateListing } from '../services/ai.js'
+import { aiEnabled, aiInfo, getLastAIError, chatReply, vendorAssistReply, generateListing } from '../services/ai.js'
 
 const router = Router()
 
-router.get('/status', (_req, res) => res.json({ ai_enabled: aiEnabled() }))
+router.get('/status', (_req, res) => res.json({ ...aiInfo(), last_error: getLastAIError() || null }))
 
 function readMessages(body) {
   const messages = Array.isArray(body?.messages) ? body.messages : []

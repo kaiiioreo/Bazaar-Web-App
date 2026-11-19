@@ -2,48 +2,98 @@
 // This is the ONLY file that talks to the third-party LLM API.
 // Every function has a non-AI fallback, so the app still works without an API key.
 
-const PROVIDER = (process.env.AI_PROVIDER || 'anthropic').toLowerCase()
+const PROVIDER = (process.env.AI_PROVIDER || 'gemini').toLowerCase() // gemini | anthropic | openai
 const API_KEY = process.env.AI_API_KEY || ''
-const MODEL = process.env.AI_MODEL || (PROVIDER === 'openai' ? 'gpt-4o-mini' : 'claude-haiku-5-5')
+const DEFAULT_MODELS = { gemini: 'gemini-flash-latest', openai: 'gpt-4o-mini', anthropic: 'claude-haiku-5-5' }
+const MODEL = process.env.AI_MODEL || DEFAULT_MODELS[PROVIDER] || DEFAULT_MODELS.gemini
+const GEMINI_URL = process.env.GEMINI_BASE_URL || 'https://generativelanguage.googleapis.com/v1beta'
 
 export const aiEnabled = () => Boolean(API_KEY)
+export const aiInfo = () => ({ provider: PROVIDER, model: MODEL, enabled: aiEnabled() })
+
+let lastError = ''
+export const getLastAIError = () => lastError
+
+async function readJSON(res) {
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) throw new Error(`${res.status} ${data.error?.message || res.statusText}`)
+  return data
+}
+
+// Google Gemini (free tier available). Docs: ai.google.dev/api/generate-content
+async function callGemini({ system, messages, maxTokens }) {
+  const res = await fetch(`${GEMINI_URL}/models/${encodeURIComponent(MODEL)}:generateContent`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-goog-api-key': API_KEY },
+    body: JSON.stringify({
+      systemInstruction: { parts: [{ text: system }] },
+      contents: messages.map((m) => ({
+        role: m.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: m.content }],
+      })),
+      // Newer Flash models "think" before answering and that uses output tokens,
+      // so leave extra room above the answer length we actually want.
+      generationConfig: { maxOutputTokens: maxTokens + 2048, temperature: 0.4 },
+    }),
+    signal: AbortSignal.timeout(30000),
+  })
+  const data = await readJSON(res)
+  const parts = data.candidates?.[0]?.content?.parts ?? []
+  return parts.filter((p) => !p.thought).map((p) => p.text || '').join('').trim() || null
+}
+
+async function callOpenAI({ system, messages, maxTokens }) {
+  const res = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', authorization: `Bearer ${API_KEY}` },
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      messages: [{ role: 'system', content: system }, ...messages],
+    }),
+    signal: AbortSignal.timeout(20000),
+  })
+  const data = await readJSON(res)
+  return data.choices?.[0]?.message?.content?.trim() || null
+}
+
+async function callAnthropic({ system, messages, maxTokens }) {
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-api-key': API_KEY, 'anthropic-version': '2023-06-01' },
+    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
+    signal: AbortSignal.timeout(20000),
+  })
+  const data = await readJSON(res)
+  return data.content?.map((c) => c.text || '').join('').trim() || null
+}
 
 // messages: [{ role: 'user' | 'assistant', content: string }]
+// Returns the reply text, or null so the caller uses its non-AI fallback.
 async function callLLM({ system, messages, maxTokens = 500 }) {
   if (!API_KEY) return null
   try {
-    if (PROVIDER === 'openai') {
-      const res = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json', authorization: `Bearer ${API_KEY}` },
-        body: JSON.stringify({
-          model: MODEL,
-          max_tokens: maxTokens,
-          messages: [{ role: 'system', content: system }, ...messages],
-        }),
-        signal: AbortSignal.timeout(20000),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error?.message || res.statusText)
-      return data.choices?.[0]?.message?.content?.trim() || null
-    }
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
-      signal: AbortSignal.timeout(20000),
-    })
-    const data = await res.json()
-    if (!res.ok) throw new Error(data.error?.message || res.statusText)
-    return data.content?.map((c) => c.text || '').join('').trim() || null
+    const call = PROVIDER === 'openai' ? callOpenAI : PROVIDER === 'anthropic' ? callAnthropic : callGemini
+    const text = await call({ system, messages, maxTokens })
+    if (!text) throw new Error('The AI returned an empty answer.')
+    lastError = ''
+    return text
   } catch (err) {
+    lastError = err.message
+    // 429 = free-tier limit reached; the fallback keeps the app working.
     console.error('[ai] request failed, using fallback:', err.message)
     return null
   }
+}
+
+// Used by `npm run ai:check` to confirm the key and model work.
+export async function testAI() {
+  const text = await callLLM({
+    system: 'Reply with exactly: Bazaar AI is working.',
+    messages: [{ role: 'user', content: 'Test' }],
+    maxTokens: 50,
+  })
+  return { ok: Boolean(text), text, error: lastError }
 }
 
 function parseJSON(text) {
