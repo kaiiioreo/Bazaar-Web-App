@@ -1,0 +1,62 @@
+import StatCard from '../../components/ui/StatCard'
+import PageHeader from '../../components/ui/PageHeader'
+import SentimentCard from '../../components/admin/SentimentCard'
+import Button from '../../components/ui/Button'
+import LoadState from '../../components/common/LoadState'
+import useApi from '../../hooks/useApi'
+import { getStats } from '../../api/admin'
+import { plural } from '../../utils/format'
+
+// Admin: reports and analytics (ViewReportsAndAnalytics, SRS 3.1.2.6).
+export default function Dashboard() {
+  const { data: stats, loading, error, reload } = useApi(() => getStats(), [])
+
+  return (
+    <div>
+      <PageHeader title="Dashboard" description="A quick look at vendors, customers, events, and reviews." />
+      {loading || error ? (
+        <LoadState loading={loading} error={error} onRetry={reload} />
+      ) : (
+        <>
+          <div className="mb-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <StatCard label="Active vendors" value={stats.activeVendors} />
+            <StatCard
+              label="Pending applications"
+              value={stats.pendingApplications}
+              tone={stats.pendingApplications ? 'warning' : 'default'}
+            />
+            <StatCard label="Registered customers" value={stats.totalCustomers} />
+            <StatCard label="Upcoming events" value={stats.upcomingEvents} />
+            <StatCard
+              label="Average review rating"
+              value={stats.totalReviews ? `${stats.averageRating} ★` : '–'}
+              hint={plural(stats.totalReviews, 'review')}
+            />
+            <StatCard
+              label="Reviews flagged by AI"
+              value={stats.flaggedReviews}
+              tone={stats.flaggedReviews ? 'danger' : 'default'}
+            />
+          </div>
+
+          <SentimentCard initial={stats} />
+
+          {(stats.pendingApplications > 0 || stats.flaggedReviews > 0) && (
+            <div className="flex flex-wrap gap-3">
+              {stats.pendingApplications > 0 && (
+                <Button to="/admin/applications">
+                  Review {plural(stats.pendingApplications, 'pending application')}
+                </Button>
+              )}
+              {stats.flaggedReviews > 0 && (
+                <Button to="/admin/reviews" variant="secondary">
+                  Moderate {plural(stats.flaggedReviews, 'flagged review')}
+                </Button>
+              )}
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
