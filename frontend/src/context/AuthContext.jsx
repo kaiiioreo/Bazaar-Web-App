@@ -2,6 +2,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import * as authApi from '../api/auth'
 import { getToken, setToken } from '../api/client'
+import { markActive } from '../utils/idle'
 
 const AuthContext = createContext(null)
 
@@ -18,6 +19,8 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(() => Boolean(getToken()))
   // true after the user clicks Log out (vs. a session that expired)
   const [loggedOut, setLoggedOut] = useState(false)
+  // true after an automatic logout for inactivity (SRS 3.5.1)
+  const [idleOut, setIdleOut] = useState(false)
 
   // Restore the session after a page refresh.
   useEffect(() => {
@@ -39,7 +42,9 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const data = await authApi.login(email, password)
     setToken(data.token)
+    markActive() // start the inactivity timer fresh
     setLoggedOut(false)
+    setIdleOut(false)
     setUser(data.user)
     return data.user
   }, [])
@@ -47,14 +52,18 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (body) => {
     const data = await authApi.register(body)
     setToken(data.token)
+    markActive()
     setLoggedOut(false)
+    setIdleOut(false)
     setUser(data.user)
     return data.user
   }, [])
 
-  const logout = useCallback(() => {
+  // logout() = the user clicked Log out (go home). logout({ reason: 'idle' }) = timed out (IdleLogout sends them to login).
+  const logout = useCallback(({ reason } = {}) => {
     setToken(null)
-    setLoggedOut(true)
+    setLoggedOut(reason !== 'idle')
+    setIdleOut(reason === 'idle')
     setUser(null)
   }, [])
 
@@ -66,8 +75,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const value = useMemo(
-    () => ({ user, loading, loggedOut, login, register, logout, refresh, setUser }),
-    [user, loading, loggedOut, login, register, logout, refresh],
+    () => ({ user, loading, loggedOut, idleOut, login, register, logout, refresh, setUser }),
+    [user, loading, loggedOut, idleOut, login, register, logout, refresh],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

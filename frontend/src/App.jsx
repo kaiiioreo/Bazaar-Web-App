@@ -3,6 +3,7 @@ import ChatbotWidget from './components/common/ChatbotWidget.jsx'
 import Navbar from './components/common/Navbar.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
 import ScrollToTop from './components/common/ScrollToTop.jsx'
+import IdleLogout from './components/common/IdleLogout.jsx'
 import AuthPage from './pages/AuthPage.jsx'
 import HomePage from './pages/HomePage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
@@ -33,6 +34,7 @@ export default function App() {
   return (
     <div className="app-shell">
       <ScrollToTop />
+      <IdleLogout />
       {!isDashboard && <Navbar />}
       <main>
         <Routes>

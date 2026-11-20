@@ -4,6 +4,7 @@ import Icon from '../components/common/Icon.jsx'
 import PasswordInput from '../components/common/PasswordInput.jsx'
 import { forgotPassword, resetPassword } from '../api/auth'
 import { homeFor, useAuth } from '../context/AuthContext'
+import { IDLE_MINUTES } from '../utils/idle'
 
 export default function AuthPage({ mode }) {
   const isRegister = mode === 'register'
@@ -218,6 +219,11 @@ export default function AuthPage({ mode }) {
           {error && (
             <p className="auth-notice" role="alert" style={{ color: '#b91c1c' }}>
               {error}
+            </p>
+          )}
+          {mode === 'login' && searchParams.get('reason') === 'idle' && !error && (
+            <p className="auth-notice" role="status">
+              You were logged out after {IDLE_MINUTES} minutes of inactivity. Please log in again.
             </p>
           )}
           {notice && (
