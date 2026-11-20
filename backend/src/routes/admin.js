@@ -5,7 +5,6 @@ import { HttpError, toId, todayUTC, parseDate, requireFields } from '../lib/http
 import { CATEGORIES } from '../lib/constants.js'
 import * as out from '../lib/serialize.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { emailEnabled } from '../services/email.js'
 import { aiEnabled, basicSummary, summarizeReviewsWithSource } from '../services/ai.js'
 import { notify, notifyMany, customersFavoritingVendor } from '../services/notify.js'
 import { refreshVendorSummaryLater } from '../services/reviews.js'
@@ -221,9 +220,13 @@ router.patch('/users/:id/status', async (req, res) => {
 router.post('/users/:id/reset-password', async (req, res) => {
   const user = await prisma.user.findUnique({ where: { user_id: toId(req.params.id) } })
   if (!user) throw new HttpError(404, 'User not found')
-  const link = await issueResetLink(user)
-  const body = { message: `A password reset link was sent to ${user.email}.` }
-  if (!emailEnabled() && process.env.NODE_ENV !== 'production') body.dev_reset_link = link
+  const { link, sent } = await issueResetLink(user)
+  const body = {
+    message: sent
+      ? `A password reset link was sent to ${user.email}.`
+      : `The email could not be sent, so the reset link was printed in the backend terminal.`,
+  }
+  if (!sent && process.env.NODE_ENV !== 'production') body.dev_reset_link = link
   res.json(body)
 })
 

@@ -12,7 +12,8 @@
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
     "ai:check": "node scripts/check-ai.js",
-    "format": "prettier --write src prisma/seed.js scripts"
+    "format": "prettier --write src prisma/seed.js scripts",
+    "email:check": "node scripts/check-email.js"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",

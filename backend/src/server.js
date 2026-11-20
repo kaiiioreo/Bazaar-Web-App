@@ -2,7 +2,7 @@ import 'dotenv/config'
 import { app } from './app.js'
 import { refreshSentimentSummary } from './routes/admin.js'
 import { aiInfo } from './services/ai.js'
-import { emailEnabled } from './services/email.js'
+import { emailEnabled, emailSender } from './services/email.js'
 
 if (!process.env.DATABASE_URL || !process.env.JWT_SECRET) {
   console.error('Missing DATABASE_URL or JWT_SECRET. Copy .env.example to .env and fill it in.')
@@ -15,6 +15,6 @@ app.listen(port, () => {
   refreshSentimentSummary() // prepare the Admin dashboard's AI summary in the background
   const ai = aiInfo()
   console.log(
-    `AI: ${ai.enabled ? `${ai.provider} (${ai.model})` : 'fallback mode (no AI_API_KEY)'} | Email: ${emailEnabled() ? 'SMTP' : 'printed in this terminal'}`,
+    `AI: ${ai.enabled ? `${ai.provider} (${ai.model})` : 'fallback mode (no AI_API_KEY)'} | Email: ${emailEnabled() ? `SMTP (${emailSender()})` : 'printed in this terminal'}`,
   )
 })

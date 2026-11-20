@@ -5,7 +5,7 @@ import { prisma } from '../lib/prisma.js'
 import { HttpError, requireFields } from '../lib/http.js'
 import * as out from '../lib/serialize.js'
 import { requireAuth, signToken } from '../middleware/auth.js'
-import { emailEnabled, sendPasswordResetEmail } from '../services/email.js'
+import { sendPasswordResetEmail } from '../services/email.js'
 
 const router = Router()
 
@@ -34,7 +34,8 @@ async function session(user) {
   return data
 }
 
-// Creates a reset token and sends the link. Returns the link so it can be shown in dev.
+// Creates a reset token and emails the link. Returns { link, sent }; sent is false when the email
+// was only printed in the terminal (no SMTP, or Gmail failed), so dev mode can show the link instead.
 export async function issueResetLink(user) {
   const token = crypto.randomBytes(32).toString('hex')
   await prisma.user.update({
@@ -42,8 +43,8 @@ export async function issueResetLink(user) {
     data: { reset_token_hash: hashToken(token), reset_expires: new Date(Date.now() + 60 * 60 * 1000) },
   })
   const link = `${process.env.CLIENT_URL || 'http://localhost:5173'}/reset-password?token=${token}`
-  await sendPasswordResetEmail(user, link)
-  return link
+  const sent = await sendPasswordResetEmail(user, link)
+  return { link, sent }
 }
 
 // RegisterUser()
@@ -108,11 +109,10 @@ router.patch('/me', requireAuth, async (req, res) => {
 router.post('/forgot-password', async (req, res) => {
   requireFields(req.body, ['email'])
   const user = await prisma.user.findUnique({ where: { email: normalizeEmail(req.body.email) } })
-  let link = null
-  if (user && user.status === 'active') link = await issueResetLink(user)
+  const result = user && user.status === 'active' ? await issueResetLink(user) : null
   const body = { message: 'If that email is registered, a reset link has been sent.' }
-  // Without email configured, return the link in development so the flow can be demoed.
-  if (link && !emailEnabled() && process.env.NODE_ENV !== 'production') body.dev_reset_link = link
+  // If the email could not be sent, return the link in development so the flow can still be demoed.
+  if (result && !result.sent && process.env.NODE_ENV !== 'production') body.dev_reset_link = result.link
   res.json(body)
 })
 

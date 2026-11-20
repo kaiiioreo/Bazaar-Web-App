@@ -47,9 +47,7 @@ export default function Users() {
         const res = await sendPasswordReset(user.user_id)
         setMessage({
           tone: 'success',
-          text: res.dev_reset_link
-            ? `${res.message} Email is not set up yet, so here is the link: ${res.dev_reset_link}`
-            : res.message,
+          text: res.dev_reset_link ? `${res.message} Reset link: ${res.dev_reset_link}` : res.message,
         })
       } else {
         const nextStatus = user.status === 'active' ? 'suspended' : 'active'
