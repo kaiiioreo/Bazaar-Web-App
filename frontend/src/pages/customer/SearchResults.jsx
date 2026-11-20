@@ -57,7 +57,7 @@ export default function SearchResults() {
           {results.vendors.length > 0 && (
             <section className="mt-8">
               <h2 className="font-serif text-2xl text-brand">Vendors ({results.vendors.length})</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger">
                 {results.vendors.map((v) => (
                   <VendorCard
                     key={v.id}
@@ -72,7 +72,7 @@ export default function SearchResults() {
           {results.products.length > 0 && (
             <section className="mt-10">
               <h2 className="font-serif text-2xl text-brand">Products ({results.products.length})</h2>
-              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 stagger">
                 {results.products.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}

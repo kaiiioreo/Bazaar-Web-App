@@ -14,6 +14,7 @@ import { getVendor } from '../../api/catalog'
 import { createReview, deleteReview, updateReview } from '../../api/customer'
 import { useAuth } from '../../context/AuthContext'
 import { formatLongDate, plural } from '../../utils/format'
+import FadeImg from '../../components/ui/FadeImg'
 
 // A vendor's public shop page: products, upcoming bazaars, AI review summary, reviews (ViewVendorProfile).
 export default function VendorProfile() {
@@ -68,7 +69,7 @@ export default function VendorProfile() {
         <Awning color={vendor.accent} className="h-6" />
         <div className="flex flex-wrap items-start justify-between gap-4 p-6">
           <div className="flex items-start gap-4">
-            {vendor.image && <img src={vendor.image} alt="" className="h-16 w-16 rounded-full object-cover" />}
+            {vendor.image && <FadeImg src={vendor.image} alt="" className="h-16 w-16 rounded-full object-cover" />}
             <div>
               <h1 className="font-serif text-4xl text-brand">{vendor.name}</h1>
               <p className="mt-1 text-muted">{vendor.category}</p>
@@ -112,7 +113,7 @@ export default function VendorProfile() {
         {vendor.products.length === 0 ? (
           <p className="mt-2 text-muted">No products listed yet.</p>
         ) : (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger">
             {vendor.products.map((p) => (
               <ProductCard key={p.id} product={p} showVendor={false} />
             ))}

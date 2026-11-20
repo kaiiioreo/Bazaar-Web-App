@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import Icon from '../components/common/Icon.jsx'
 import { getEvents, getVendors } from '../api/catalog'
+import FadeImg from '../components/ui/FadeImg'
 
 const categories = [
   { name: 'Home & living', icon: '⌂', color: 'sage' },
@@ -45,7 +46,7 @@ function MakerCard({ maker }) {
   return (
     <article className="maker-card">
       <Link className="maker-image" to={maker.to ?? '/customer'} aria-label={`Discover ${maker.name}`}>
-        <img src={maker.image} alt={maker.imageAlt} loading="lazy" />
+        <FadeImg src={maker.image} alt={maker.imageAlt} loading="lazy" />
         <span className="image-tag">{maker.tag}</span>
         <span className="save-button" aria-hidden="true">
           <Icon name="arrow-up-right" size={17} />
@@ -136,13 +137,13 @@ export default function HomePage() {
         </div>
         <div className="hero-art" aria-label="A look inside the local maker community">
           <div className="hero-photo hero-photo-main">
-            <img
+            <FadeImg
               src="https://images.unsplash.com/photo-1531058020387-3be344556be6?auto=format&fit=crop&w=1100&q=85"
               alt="A lively local outdoor market with handmade goods"
             />
           </div>
           <div className="hero-photo hero-photo-small">
-            <img
+            <FadeImg
               src="https://images.unsplash.com/photo-1490481651871-ab68de25d43d?auto=format&fit=crop&w=500&q=85"
               alt="Carefully made goods from an independent maker"
             />
@@ -178,7 +179,7 @@ export default function HomePage() {
             Browse all categories <Icon name="arrow-up-right" size={16} />
           </Link>
         </div>
-        <div className="category-list">
+        <div className="category-list stagger">
           {categories.map((category) => (
             <Link className="category-item" to="/customer" key={category.name}>
               <span className={`category-icon category-${category.color}`} aria-hidden="true">
@@ -209,7 +210,7 @@ export default function HomePage() {
               Vendor sign up <Icon name="arrow" size={17} />
             </Link>
           </div>
-          <div className="maker-grid">
+          <div className="maker-grid stagger">
             {shownMakers.map((maker) => (
               <MakerCard key={maker.name} maker={maker} />
             ))}
@@ -238,7 +239,7 @@ export default function HomePage() {
             </Link>
           </div>
           <div className="event-visual">
-            <img
+            <FadeImg
               src="https://images.unsplash.com/photo-1517457373958-b7bdd4587205?auto=format&fit=crop&w=1000&q=85"
               alt="Friends spending a sunny afternoon together at an outdoor gathering"
               loading="lazy"

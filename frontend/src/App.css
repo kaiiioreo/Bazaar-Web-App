@@ -1931,6 +1931,55 @@
   }
 }
 
+/* Card grids (class "stagger"): cards fade up one after another instead of all at once.
+   "backwards" fill only applies before and during the animation, so hover lifts still work after it. */
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+}
+.stagger > * {
+  animation: card-in 320ms cubic-bezier(0.2, 0.8, 0.2, 1) backwards;
+  animation-delay: 360ms; /* items after the 9th all arrive together, so long lists don't feel slow */
+}
+.stagger > :nth-child(1) {
+  animation-delay: 0ms;
+}
+.stagger > :nth-child(2) {
+  animation-delay: 40ms;
+}
+.stagger > :nth-child(3) {
+  animation-delay: 80ms;
+}
+.stagger > :nth-child(4) {
+  animation-delay: 120ms;
+}
+.stagger > :nth-child(5) {
+  animation-delay: 160ms;
+}
+.stagger > :nth-child(6) {
+  animation-delay: 200ms;
+}
+.stagger > :nth-child(7) {
+  animation-delay: 240ms;
+}
+.stagger > :nth-child(8) {
+  animation-delay: 280ms;
+}
+.stagger > :nth-child(9) {
+  animation-delay: 320ms;
+}
+
+/* Images fade in once they finish loading (see components/ui/FadeImg.jsx). */
+img.fade-img {
+  opacity: 0;
+  transition: opacity 300ms ease-out;
+}
+img.fade-img.is-loaded {
+  opacity: 1;
+}
+
 /* People who turn on "reduce motion" in their system settings get no animations at all. */
 @media (prefers-reduced-motion: reduce) {
   *,
@@ -1940,6 +1989,9 @@
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
+  }
+  .stagger > * {
+    animation-delay: 0ms !important;
   }
 }
 

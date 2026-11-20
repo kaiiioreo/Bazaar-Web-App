@@ -25,7 +25,7 @@ export default function Favorites() {
           No favorites yet. Tap the heart on a vendor to save it here.
         </EmptyState>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger">
           {data.vendors.map((v) => (
             <VendorCard key={v.id} vendor={v} isFavorite={favorites.includes(v.id)} onToggleFavorite={toggleFavorite} />
           ))}

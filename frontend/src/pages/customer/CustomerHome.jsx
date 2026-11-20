@@ -82,7 +82,7 @@ export default function CustomerHome() {
             <EmptyState>No vendors yet.</EmptyState>
           </div>
         ) : (
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 stagger">
             {shownVendors.map((v) => (
               <VendorCard
                 key={v.id}
@@ -100,7 +100,7 @@ export default function CustomerHome() {
           <h2 id="products-heading" className="font-serif text-3xl text-brand">
             Available now
           </h2>
-          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-4 stagger">
             {products.slice(0, 4).map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}

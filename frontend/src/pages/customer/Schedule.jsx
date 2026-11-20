@@ -17,7 +17,7 @@ export default function Schedule() {
       ) : events.length === 0 ? (
         <EmptyState>No upcoming bazaars yet. Check back soon.</EmptyState>
       ) : (
-        <div className="grid gap-5 md:grid-cols-2">
+        <div className="grid gap-5 md:grid-cols-2 stagger">
           {events.map((e) => (
             <ScheduleCard key={e.id} event={e} />
           ))}
