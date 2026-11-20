@@ -100,13 +100,22 @@ router.post('/reviews', async (req, res) => {
   const existing = await prisma.review.findUnique({
     where: { customer_id_vendor_id: { customer_id: req.user.user_id, vendor_id } },
   })
-  if (existing) throw new HttpError(409, 'You already reviewed this vendor. Edit your review instead.')
+  // One review per customer per vendor. A review the Admin removed doesn't block a new one:
+  // the new review replaces it (and is checked again like any new review).
+  if (existing && existing.status !== 'removed') {
+    throw new HttpError(409, 'You already reviewed this vendor. Edit your review instead.')
+  }
 
   const check = quickReviewCheck(data.comment)
-  const review = await prisma.review.create({
-    data: { ...data, vendor_id, customer_id: req.user.user_id, ai_flag: check.flag, ai_flag_reason: check.reason },
-    include: { vendor: { select: { business_name: true } }, customer: { select: { name: true } } },
-  })
+  const fields = { ...data, ai_flag: check.flag, ai_flag_reason: check.reason }
+  const include = { vendor: { select: { business_name: true } }, customer: { select: { name: true } } }
+  const review = existing
+    ? await prisma.review.update({
+        where: { review_id: existing.review_id },
+        data: { ...fields, status: 'visible', created_at: new Date() },
+        include,
+      })
+    : await prisma.review.create({ data: { ...fields, vendor_id, customer_id: req.user.user_id }, include })
   if (!check.flag) aiCheckLater(review.review_id, review.comment)
   refreshVendorSummaryLater(vendor_id)
   res.status(201).json(out.review(review))
