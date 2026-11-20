@@ -1,6 +1,7 @@
 import api from './client'
 
 export const getStats = () => api.get('/admin/stats').then((r) => r.data)
+export const refreshSentiment = () => api.post('/admin/stats/sentiment').then((r) => r.data)
 
 export const getApplications = () => api.get('/admin/applications').then((r) => r.data)
 export const approveApplication = (id) => api.post(`/admin/applications/${id}/approve`).then((r) => r.data)

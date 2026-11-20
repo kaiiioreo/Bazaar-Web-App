@@ -12,14 +12,14 @@ export default function Modal({ title, children, footer, onClose, size = 'md' })
   const width = size === 'lg' ? 'max-w-lg' : 'max-w-md'
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      className="fixed inset-0 z-50 flex animate-fade-in items-center justify-center bg-black/40 p-4"
       onMouseDown={(e) => e.target === e.currentTarget && onClose?.()}
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className={`max-h-full w-full ${width} overflow-y-auto rounded-2xl bg-white p-6 shadow-xl`}
+        className={`max-h-full w-full ${width} animate-pop-in overflow-y-auto rounded-2xl bg-white p-6 shadow-xl`}
       >
         <h2 className="mb-3 text-lg font-semibold text-ink">{title}</h2>
         <div className="text-sm text-muted">{children}</div>

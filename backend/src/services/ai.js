@@ -289,7 +289,12 @@ export async function generateListing({ notes, categories, vendorName }) {
 /* ---------- Review sentiment summary (SummarizeReviewSentiment) ---------- */
 
 export async function summarizeReviews(reviews, subject = 'this vendor') {
-  if (!reviews.length) return ''
+  return (await summarizeReviewsWithSource(reviews, subject)).text
+}
+
+// Same as summarizeReviews, but also says whether the AI wrote it ({ text, used_ai }).
+export async function summarizeReviewsWithSource(reviews, subject = 'this vendor') {
+  if (!reviews.length) return { text: '', used_ai: false }
   const sample = reviews
     .slice(0, 40)
     .map((r) => `${r.rating}/5: ${r.comment}`)
@@ -301,7 +306,12 @@ export async function summarizeReviews(reviews, subject = 'this vendor') {
     messages: [{ role: 'user', content: sample }],
     maxTokens: 150,
   })
-  if (text) return text
+  return text ? { text, used_ai: true } : { text: basicSummary(reviews), used_ai: false }
+}
+
+// Instant summary without AI (used as the fallback, and while the AI summary is being prepared).
+export function basicSummary(reviews) {
+  if (!reviews.length) return ''
   const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
   const tone = avg >= 4.2 ? 'very positive' : avg >= 3.5 ? 'mostly positive' : avg >= 2.5 ? 'mixed' : 'mostly negative'
   const low = reviews.find((r) => r.rating <= 3)
@@ -315,7 +325,8 @@ export async function summarizeReviews(reviews, subject = 'this vendor') {
 
 const ABUSIVE = /\b(stupid|idiot|garbage|useless|trash|scam(?:mer)?|bobo|gago|tanga|putang?ina|walang kwenta)\b/i
 
-export async function checkReview(comment) {
+// Instant rule-based check (links, insults, spammy punctuation). No AI, so it never slows a request.
+export function quickReviewCheck(comment) {
   const reasons = []
   if (/https?:\/\/|www\.|\.com\b/i.test(comment)) reasons.push('contains a link (possible spam)')
   if (ABUSIVE.test(comment)) reasons.push('possible abusive language or a personal attack')
@@ -323,7 +334,11 @@ export async function checkReview(comment) {
     reasons.push('repeated words or excessive punctuation (possible fake review)')
   }
   if (reasons.length) return { flag: true, reason: `Possible issue: ${reasons.join('; ')}.` }
+  return { flag: false, reason: null }
+}
 
+// AI check for subtler spam or fake reviews. Slow (it waits for the AI), so run it in the background.
+export async function aiReviewCheck(comment) {
   const text = await callLLM({
     system:
       'You moderate reviews on a local bazaar app. Decide if a review is spam, fake, or abusive. ' +

@@ -37,7 +37,7 @@ export default function ProductCard({ product, showVendor = true }) {
     <Link
       to={`/customer/vendors/${product.vendorId}`}
       aria-label={`${product.name}, ${peso(product.price)}, sold by ${product.vendorName}. View shop`}
-      className={`group ${cardClass} transition hover:border-muted hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand`}
+      className={`group ${cardClass} transition hover:-translate-y-0.5 hover:border-muted hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand`}
     >
       {content}
     </Link>

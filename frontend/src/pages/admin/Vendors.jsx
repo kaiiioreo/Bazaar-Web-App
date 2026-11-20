@@ -128,12 +128,15 @@ export default function Vendors() {
 
       {/* Details drawer (ViewVendor) */}
       {viewing && (
-        <div className="fixed inset-0 z-40 flex justify-end bg-black/30" onClick={() => setViewingId(null)}>
+        <div
+          className="fixed inset-0 z-40 flex animate-fade-in justify-end bg-black/30"
+          onClick={() => setViewingId(null)}
+        >
           <aside
             role="dialog"
             aria-modal="true"
             aria-label={viewing.business_name}
-            className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl"
+            className="h-full w-full max-w-md animate-slide-in-right overflow-y-auto bg-white p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-start justify-between gap-4">

@@ -70,7 +70,7 @@ export default function NotificationBell({
       </button>
       {open && (
         <div
-          className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-xl border border-line bg-white text-left text-ink shadow-xl`}
+          className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} z-50 mt-2 w-80 max-w-[90vw] animate-drop-in overflow-hidden rounded-xl border border-line bg-white text-left text-ink shadow-xl`}
         >
           <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
             <p className="text-sm font-semibold">Notifications</p>

@@ -5,7 +5,7 @@ import { plural } from '../../utils/format'
 // Vendor summary card. The whole card links to the shop; the heart saves it to favorites.
 export default function VendorCard({ vendor, isFavorite, onToggleFavorite }) {
   return (
-    <article className="relative overflow-hidden rounded-xl border border-line bg-white transition hover:border-muted hover:shadow-sm">
+    <article className="relative overflow-hidden rounded-xl border border-line bg-white transition hover:-translate-y-0.5 hover:border-muted hover:shadow-sm">
       <Awning color={vendor.accent} />
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
@@ -28,7 +28,9 @@ export default function VendorCard({ vendor, isFavorite, onToggleFavorite }) {
             aria-label={isFavorite ? `Remove ${vendor.name} from favorites` : `Save ${vendor.name} to favorites`}
             className={`relative z-10 rounded-full px-2 py-1 text-lg leading-none transition ${isFavorite ? 'text-accent' : 'text-muted hover:text-accent'}`}
           >
-            {isFavorite ? '♥' : '♡'}
+            <span key={isFavorite ? 'on' : 'off'} className={`inline-block ${isFavorite ? 'animate-heart' : ''}`}>
+              {isFavorite ? '♥' : '♡'}
+            </span>
           </button>
         </div>
         <p className="mt-3 line-clamp-2 text-sm text-muted">{vendor.description}</p>

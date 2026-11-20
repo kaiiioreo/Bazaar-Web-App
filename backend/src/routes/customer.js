@@ -4,7 +4,7 @@ import { prisma } from '../lib/prisma.js'
 import { HttpError, toId } from '../lib/http.js'
 import * as out from '../lib/serialize.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
-import { checkReview } from '../services/ai.js'
+import { aiReviewCheck, quickReviewCheck } from '../services/ai.js'
 import { refreshVendorSummaryLater } from '../services/reviews.js'
 
 const router = Router()
@@ -56,6 +56,23 @@ router.post('/favorites/toggle', async (req, res) => {
 
 /* ---------- Reviews ---------- */
 
+// Runs the slower AI review check after the review is saved, and flags it for the Admin if needed.
+function aiCheckLater(review_id, comment) {
+  setImmediate(async () => {
+    try {
+      const result = await aiReviewCheck(comment)
+      if (result.flag) {
+        await prisma.review.updateMany({
+          where: { review_id, comment }, // skip if the customer edited it again meanwhile
+          data: { ai_flag: true, ai_flag_reason: result.reason },
+        })
+      }
+    } catch (err) {
+      console.error('[reviews] AI check failed:', err.message)
+    }
+  })
+}
+
 router.get('/reviews', async (req, res) => {
   const reviews = await prisma.review.findMany({
     where: { customer_id: req.user.user_id },
@@ -85,11 +102,12 @@ router.post('/reviews', async (req, res) => {
   })
   if (existing) throw new HttpError(409, 'You already reviewed this vendor. Edit your review instead.')
 
-  const check = await checkReview(data.comment)
+  const check = quickReviewCheck(data.comment)
   const review = await prisma.review.create({
     data: { ...data, vendor_id, customer_id: req.user.user_id, ai_flag: check.flag, ai_flag_reason: check.reason },
     include: { vendor: { select: { business_name: true } }, customer: { select: { name: true } } },
   })
+  if (!check.flag) aiCheckLater(review.review_id, review.comment)
   refreshVendorSummaryLater(vendor_id)
   res.status(201).json(out.review(review))
 })
@@ -100,12 +118,13 @@ router.put('/reviews/:id', async (req, res) => {
   const review = await prisma.review.findUnique({ where: { review_id } })
   if (!review || review.customer_id !== req.user.user_id) throw new HttpError(404, 'Review not found')
   const data = readReview(req.body)
-  const check = await checkReview(data.comment)
+  const check = quickReviewCheck(data.comment)
   const updated = await prisma.review.update({
     where: { review_id },
     data: { ...data, ai_flag: check.flag, ai_flag_reason: check.reason },
     include: { vendor: { select: { business_name: true } }, customer: { select: { name: true } } },
   })
+  if (!check.flag) aiCheckLater(updated.review_id, updated.comment)
   refreshVendorSummaryLater(review.vendor_id)
   res.json(out.review(updated))
 })

@@ -91,7 +91,10 @@ export default function VendorProfile() {
             aria-pressed={isFavorite}
             className={isFavorite ? 'border-accent text-accent' : ''}
           >
-            {isFavorite ? '♥ Saved' : '♡ Save vendor'}
+            <span key={isFavorite ? 'on' : 'off'} className={`inline-block ${isFavorite ? 'animate-heart' : ''}`}>
+              {isFavorite ? '♥' : '♡'}
+            </span>
+            {isFavorite ? 'Saved' : 'Save vendor'}
           </Button>
         </div>
       </div>

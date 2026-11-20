@@ -6,7 +6,7 @@ import { CATEGORIES } from '../lib/constants.js'
 import * as out from '../lib/serialize.js'
 import { requireAuth, requireRole } from '../middleware/auth.js'
 import { emailEnabled } from '../services/email.js'
-import { summarizeReviews } from '../services/ai.js'
+import { aiEnabled, basicSummary, summarizeReviewsWithSource } from '../services/ai.js'
 import { notify, notifyMany, customersFavoritingVendor } from '../services/notify.js'
 import { refreshVendorSummaryLater } from '../services/reviews.js'
 import { issueResetLink } from './auth.js'
@@ -16,7 +16,28 @@ router.use(requireAuth, requireRole('admin'))
 
 /* ---------- Reports & analytics (ViewReportsAndAnalytics) ---------- */
 
-let sentimentCache = { at: 0, text: '' }
+// The AI sentiment summary is slow (it waits for Gemini), so the dashboard never waits for it:
+// it shows the last summary straight away and refreshes it in the background every 10 minutes.
+// The Admin can also ask for a fresh one with the Refresh button (POST /api/admin/stats/sentiment).
+let sentimentCache = { at: 0, text: '', used_ai: false }
+let refreshing = null
+
+const recentReviews = () =>
+  prisma.review.findMany({ where: { status: 'visible' }, orderBy: { created_at: 'desc' }, take: 40 })
+
+export function refreshSentimentSummary() {
+  if (refreshing) return refreshing
+  refreshing = recentReviews()
+    .then((recent) => summarizeReviewsWithSource(recent, 'the bazaar vendors overall'))
+    .then(({ text, used_ai }) => {
+      sentimentCache = { at: Date.now(), text, used_ai }
+    })
+    .catch((err) => console.error('[admin] sentiment refresh failed:', err.message))
+    .finally(() => {
+      refreshing = null
+    })
+  return refreshing
+}
 
 router.get('/stats', async (_req, res) => {
   const [activeVendors, pendingApplications, totalCustomers, upcomingEvents, flaggedReviews, avg] = await Promise.all([
@@ -28,15 +49,11 @@ router.get('/stats', async (_req, res) => {
     prisma.review.aggregate({ where: { status: 'visible' }, _avg: { rating: true }, _count: true }),
   ])
 
-  // Overall review sentiment, refreshed at most every 10 minutes.
-  if (Date.now() - sentimentCache.at > 10 * 60 * 1000) {
-    const recent = await prisma.review.findMany({
-      where: { status: 'visible' },
-      orderBy: { created_at: 'desc' },
-      take: 40,
-    })
-    sentimentCache = { at: Date.now(), text: await summarizeReviews(recent, 'the bazaar vendors overall') }
-  }
+  // Start a background refresh when the summary is older than 10 minutes (not awaited).
+  if (Date.now() - sentimentCache.at > 10 * 60 * 1000) refreshSentimentSummary()
+  // Nothing prepared yet (first visit after the server starts): use the instant summary.
+  const ready = Boolean(sentimentCache.at)
+  const sentiment = ready ? sentimentCache.text : basicSummary(await recentReviews())
 
   res.json({
     activeVendors,
@@ -46,8 +63,26 @@ router.get('/stats', async (_req, res) => {
     flaggedReviews,
     averageRating: avg._avg.rating ? Math.round(avg._avg.rating * 10) / 10 : 0,
     totalReviews: avg._count,
-    sentimentSummary: sentimentCache.text || 'No reviews yet.',
+    ...sentimentInfo(sentiment, ready),
   })
+})
+
+function sentimentInfo(text, ready = true) {
+  return {
+    sentimentSummary: text || 'No reviews yet.',
+    sentimentByAI: ready && sentimentCache.used_ai,
+    sentimentUpdatedAt: ready ? new Date(sentimentCache.at).toISOString() : null,
+    aiEnabled: aiEnabled(),
+  }
+}
+
+// Refresh button: regenerate the summary now and return it (waits for the AI, usually 1-3 seconds).
+// If a background refresh is already running, wait for it and then make a new one with the latest reviews.
+router.post('/stats/sentiment', async (_req, res) => {
+  if (refreshing) await refreshing
+  await refreshSentimentSummary()
+  const ready = Boolean(sentimentCache.at) // false only if every attempt so far has failed
+  res.json(sentimentInfo(ready ? sentimentCache.text : basicSummary(await recentReviews()), ready))
 })
 
 /* ---------- Vendor applications ---------- */

@@ -20,3 +20,12 @@ export const peso = (amount) => `₱${Number(amount).toLocaleString('en-PH', { m
 
 // plural(1, 'review') -> '1 review', plural(3, 'review') -> '3 reviews'
 export const plural = (n, word) => `${n} ${word}${n === 1 ? '' : 's'}`
+
+// timeAgo('2026-11-21T00:10:00Z') -> 'just now', '5 minutes ago', '2 hours ago'
+export function timeAgo(iso) {
+  if (!iso) return ''
+  const minutes = Math.round((Date.now() - new Date(iso).getTime()) / 60000)
+  if (minutes < 1) return 'just now'
+  if (minutes < 60) return `${plural(minutes, 'minute')} ago`
+  return `${plural(Math.round(minutes / 60), 'hour')} ago`
+}

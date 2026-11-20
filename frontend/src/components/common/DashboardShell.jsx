@@ -36,7 +36,9 @@ export default function DashboardShell({ title, links, footer, children }) {
         <NotificationBell className="ml-auto" />
       </header>
 
-      {menuOpen && <div className="fixed inset-0 z-30 bg-black/30 md:hidden" onClick={close} aria-hidden="true" />}
+      {menuOpen && (
+        <div className="fixed inset-0 z-30 animate-fade-in bg-black/30 md:hidden" onClick={close} aria-hidden="true" />
+      )}
 
       <aside
         className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col border-r border-line bg-paper p-4 transition-transform md:sticky md:top-0 md:h-screen md:translate-x-0 ${
