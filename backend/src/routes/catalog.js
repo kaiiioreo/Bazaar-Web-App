@@ -69,10 +69,7 @@ router.get('/products', async (req, res) => {
   const { q, category, stock, vendor_id, limit } = req.query
   const where = { vendor: activeVendor }
   if (q) {
-    where.OR = [
-      { name: { contains: q, mode: 'insensitive' } },
-      { description: { contains: q, mode: 'insensitive' } },
-    ]
+    where.OR = [{ name: { contains: q, mode: 'insensitive' } }, { description: { contains: q, mode: 'insensitive' } }]
   }
   if (category && category !== 'All') where.category = category
   if (stock === 'available') where.stock_status = { not: 'out_of_stock' }
@@ -119,7 +116,9 @@ router.get('/events', async (req, res) => {
 
 // SearchProductsNaturalLanguage(): POST /api/search { query }
 router.post('/search', optionalAuth, async (req, res) => {
-  const query = String(req.body?.query || '').trim().slice(0, 200)
+  const query = String(req.body?.query || '')
+    .trim()
+    .slice(0, 200)
   if (!query) throw new HttpError(400, 'Type something to search for.')
   const filters = await parseSearchQuery(query, CATEGORIES)
 

@@ -71,7 +71,8 @@ router.post('/login', async (req, res) => {
   if (!user || !(await bcrypt.compare(req.body.password, user.password_hash))) {
     throw new HttpError(401, 'Incorrect email or password.')
   }
-  if (user.status !== 'active') throw new HttpError(403, `This account is ${user.status}. Please contact the Bazaar team.`)
+  if (user.status !== 'active')
+    throw new HttpError(403, `This account is ${user.status}. Please contact the Bazaar team.`)
   res.json({ token: signToken(user), ...(await session(user)) })
 })
 

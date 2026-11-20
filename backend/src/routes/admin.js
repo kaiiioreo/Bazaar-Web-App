@@ -89,7 +89,12 @@ router.post('/applications/:id/approve', async (req, res) => {
       update: { business_name: app.business_name, category: app.product_category },
     }),
   ])
-  await notify(app.user_id, 'application_status', `Your application for ${app.business_name} was approved. Welcome to Bazaar!`, '/vendor')
+  await notify(
+    app.user_id,
+    'application_status',
+    `Your application for ${app.business_name} was approved. Welcome to Bazaar!`,
+    '/vendor',
+  )
   res.json(out.application(updated))
 })
 
@@ -138,7 +143,10 @@ function adminVendor(v) {
 }
 
 router.get('/vendors', async (_req, res) => {
-  const vendors = await prisma.vendorProfile.findMany({ include: vendorDetailInclude, orderBy: { business_name: 'asc' } })
+  const vendors = await prisma.vendorProfile.findMany({
+    include: vendorDetailInclude,
+    orderBy: { business_name: 'asc' },
+  })
   res.json(vendors.map(adminVendor))
 })
 
@@ -192,7 +200,10 @@ export function slotLabel(i) {
 }
 
 const eventInclude = {
-  schedules: { include: { vendor: { select: { business_name: true } }, slot: true }, orderBy: { registered_at: 'asc' } },
+  schedules: {
+    include: { vendor: { select: { business_name: true } }, slot: true },
+    orderBy: { registered_at: 'asc' },
+  },
 }
 
 function adminEvent(ev) {
@@ -255,7 +266,8 @@ router.put('/events/:id', async (req, res) => {
     throw new HttpError(409, 'Some of the stalls you are removing have vendors assigned. Unassign them first.')
   }
   if (toAdd.length) ops.push(prisma.bazaarSlot.createMany({ data: toAdd.map((label) => ({ event_id, label })) }))
-  if (toRemove.length) ops.push(prisma.bazaarSlot.deleteMany({ where: { slot_id: { in: toRemove.map((s) => s.slot_id) } } }))
+  if (toRemove.length)
+    ops.push(prisma.bazaarSlot.deleteMany({ where: { slot_id: { in: toRemove.map((s) => s.slot_id) } } }))
   ops.push(prisma.bazaarEvent.update({ where: { event_id }, data }))
   await prisma.$transaction(ops)
 
@@ -281,9 +293,19 @@ router.post('/events/:id/cancel', async (req, res) => {
     include: eventInclude,
   })
   const vendorIds = ev.schedules.map((s) => s.vendor_id)
-  await notifyMany(vendorIds, 'event_cancelled', `${ev.name} on ${out.dateOnly(ev.date)} has been cancelled.`, '/vendor')
+  await notifyMany(
+    vendorIds,
+    'event_cancelled',
+    `${ev.name} on ${out.dateOnly(ev.date)} has been cancelled.`,
+    '/vendor',
+  )
   const customers = (await Promise.all(vendorIds.map(customersFavoritingVendor))).flat()
-  await notifyMany(customers, 'event_cancelled', `${ev.name} on ${out.dateOnly(ev.date)} has been cancelled.`, '/customer/schedule')
+  await notifyMany(
+    customers,
+    'event_cancelled',
+    `${ev.name} on ${out.dateOnly(ev.date)} has been cancelled.`,
+    '/customer/schedule',
+  )
   res.json(adminEvent(ev))
 })
 
@@ -314,7 +336,11 @@ router.get('/events/:id/slots', async (req, res) => {
       })),
     waiting: ev.schedules
       .filter((s) => s.status === 'pre_registered')
-      .map((s) => ({ vendor_id: s.vendor_id, business_name: s.vendor.business_name, registered_at: out.dateOnly(s.registered_at) })),
+      .map((s) => ({
+        vendor_id: s.vendor_id,
+        business_name: s.vendor.business_name,
+        registered_at: out.dateOnly(s.registered_at),
+      })),
   })
 })
 
@@ -334,14 +360,22 @@ router.put('/slots/:id/assign', async (req, res) => {
 
   await prisma.$transaction([
     prisma.bazaarSlot.update({ where: { slot_id }, data: { vendor_id, status: 'assigned' } }),
-    prisma.vendorSchedule.update({ where: { schedule_id: schedule.schedule_id }, data: { slot_id, status: 'assigned' } }),
+    prisma.vendorSchedule.update({
+      where: { schedule_id: schedule.schedule_id },
+      data: { slot_id, status: 'assigned' },
+    }),
   ])
 
   const when = `${slot.event.name} on ${out.dateOnly(slot.event.date)} at ${slot.event.location}`
   await notify(vendor_id, 'stall_assigned', `You were assigned Stall ${slot.label} for ${when}.`, '/vendor')
   // SendScheduleNotification(): tell customers who favorited this vendor.
   const customers = await customersFavoritingVendor(vendor_id)
-  await notifyMany(customers, 'schedule_update', `${schedule.vendor.business_name} will be at ${when} (Stall ${slot.label}).`, `/customer/vendors/${vendor_id}`)
+  await notifyMany(
+    customers,
+    'schedule_update',
+    `${schedule.vendor.business_name} will be at ${when} (Stall ${slot.label}).`,
+    `/customer/vendors/${vendor_id}`,
+  )
 
   res.json({ message: `${schedule.vendor.business_name} was assigned to Stall ${slot.label}.` })
 })
@@ -354,10 +388,20 @@ router.delete('/slots/:id/assign', async (req, res) => {
   await prisma.$transaction([
     prisma.bazaarSlot.update({ where: { slot_id }, data: { vendor_id: null, status: 'available' } }),
     ...(slot.schedule
-      ? [prisma.vendorSchedule.update({ where: { schedule_id: slot.schedule.schedule_id }, data: { slot_id: null, status: 'pre_registered' } })]
+      ? [
+          prisma.vendorSchedule.update({
+            where: { schedule_id: slot.schedule.schedule_id },
+            data: { slot_id: null, status: 'pre_registered' },
+          }),
+        ]
       : []),
   ])
-  await notify(slot.vendor_id, 'stall_removed', `Your stall ${slot.label} for ${slot.event.name} was removed. You are back on the waiting list.`, '/vendor')
+  await notify(
+    slot.vendor_id,
+    'stall_removed',
+    `Your stall ${slot.label} for ${slot.event.name} was removed. You are back on the waiting list.`,
+    '/vendor',
+  )
   res.status(204).end()
 })
 

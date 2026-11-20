@@ -4,7 +4,12 @@ import { getNotifications, markAllRead, markRead } from '../../api/notifications
 import { useAuth } from '../../context/AuthContext'
 
 // Bell icon with a dropdown list of in-app notifications (any logged-in role).
-export default function NotificationBell({ className = '' }) {
+// align: which side the dropdown lines up with. buttonClass: colors for dark backgrounds.
+export default function NotificationBell({
+  className = '',
+  align = 'right',
+  buttonClass = 'text-muted hover:bg-cream',
+}) {
   const { user } = useAuth()
   const [open, setOpen] = useState(false)
   const [data, setData] = useState({ unread: 0, items: [] })
@@ -13,7 +18,10 @@ export default function NotificationBell({ className = '' }) {
   useEffect(() => {
     if (!user) return undefined
     let active = true
-    const load = () => getNotifications().then((d) => active && setData(d)).catch(() => {})
+    const load = () =>
+      getNotifications()
+        .then((d) => active && setData(d))
+        .catch(() => {})
     load()
     const timer = setInterval(load, 60000) // check for new ones every minute
     return () => {
@@ -51,41 +59,58 @@ export default function NotificationBell({ className = '' }) {
         onClick={() => setOpen((o) => !o)}
         aria-label={`Notifications${data.unread ? ` (${data.unread} unread)` : ''}`}
         aria-expanded={open}
-        className="relative rounded-full p-2 text-lg leading-none text-stone-600 hover:bg-stone-100"
+        className={`relative rounded-full p-2 text-lg leading-none ${buttonClass}`}
       >
         <span aria-hidden="true">🔔</span>
         {data.unread > 0 && (
-          <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-rose-600 px-1 text-[11px] font-semibold text-white">
+          <span className="absolute -right-0.5 -top-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-accent px-1 text-xs font-semibold text-white">
             {data.unread}
           </span>
         )}
       </button>
       {open && (
-        <div className="absolute right-0 z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-xl border border-stone-200 bg-white text-left text-stone-800 shadow-xl">
-          <div className="flex items-center justify-between border-b border-stone-100 px-4 py-2.5">
+        <div
+          className={`absolute ${align === 'left' ? 'left-0' : 'right-0'} z-50 mt-2 w-80 max-w-[90vw] overflow-hidden rounded-xl border border-line bg-white text-left text-ink shadow-xl`}
+        >
+          <div className="flex items-center justify-between border-b border-line px-4 py-2.5">
             <p className="text-sm font-semibold">Notifications</p>
             {data.unread > 0 && (
-              <button type="button" onClick={readAll} className="text-xs text-teal-800 hover:underline">
+              <button type="button" onClick={readAll} className="text-xs text-brand hover:underline">
                 Mark all as read
               </button>
             )}
           </div>
           <ul className="max-h-96 overflow-y-auto">
-            {data.items.length === 0 && <li className="px-4 py-6 text-center text-sm text-stone-500">No notifications yet.</li>}
+            {data.items.length === 0 && (
+              <li className="px-4 py-6 text-center text-sm text-muted">No notifications yet.</li>
+            )}
             {data.items.map((n) => {
               const body = (
                 <>
                   <p className="text-sm">{n.message}</p>
-                  <p className="mt-0.5 text-xs text-stone-500">{new Date(n.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    {new Date(n.created_at).toLocaleString('en-PH', { dateStyle: 'medium', timeStyle: 'short' })}
+                  </p>
                 </>
               )
-              const cls = `block px-4 py-3 hover:bg-stone-50 ${n.is_read ? '' : 'bg-amber-50'}`
+              const cls = `block px-4 py-3 hover:bg-cream ${n.is_read ? '' : 'bg-accent-soft'}`
               return (
-                <li key={n.notification_id} className="border-b border-stone-100 last:border-0">
+                <li key={n.notification_id} className="border-b border-line last:border-0">
                   {n.link ? (
-                    <Link to={n.link} className={cls} onClick={() => { readOne(n); setOpen(false) }}>{body}</Link>
+                    <Link
+                      to={n.link}
+                      className={cls}
+                      onClick={() => {
+                        readOne(n)
+                        setOpen(false)
+                      }}
+                    >
+                      {body}
+                    </Link>
                   ) : (
-                    <button type="button" className={`${cls} w-full text-left`} onClick={() => readOne(n)}>{body}</button>
+                    <button type="button" className={`${cls} w-full text-left`} onClick={() => readOne(n)}>
+                      {body}
+                    </button>
                   )}
                 </li>
               )

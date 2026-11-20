@@ -1,43 +1,43 @@
-import { formatDate } from './vendorHelpers'
+import Card from '../ui/Card'
+import Button from '../ui/Button'
+import Badge from '../ui/Badge'
+import EmptyState from '../ui/EmptyState'
+import { formatDate } from '../../utils/format'
 
 // PreRegisterForBazaar() / UpdateVendorSchedule()
-// events come from GET /api/vendor/events (with my_status and slot_label).
+// events come from GET /api/vendor/events (each with my_status and slot_label).
 export default function SchedulePanel({ events, onPreRegister, onWithdraw }) {
-  if (events.length === 0) {
-    return <p className="text-stone-600">No upcoming bazaars yet. The Admin will announce new ones here.</p>
-  }
+  if (events.length === 0)
+    return <EmptyState>No upcoming bazaars yet. The Admin will announce new ones here.</EmptyState>
+
   return (
-    <ul className="max-w-2xl space-y-3">
+    <ul className="max-w-3xl space-y-3">
       {events.map((ev) => (
-        <li key={ev.event_id} className="flex flex-wrap items-center gap-4 rounded-lg border border-stone-200 bg-white p-4">
-          <div className="w-14 rounded-md bg-teal-50 py-1.5 text-center text-teal-800">
-            <p className="text-xs">{formatDate(ev.date, { month: 'short' })}</p>
-            <p className="text-xl font-semibold leading-tight">{formatDate(ev.date, { day: 'numeric' })}</p>
+        <Card as="li" key={ev.event_id} className="flex flex-wrap items-center gap-4 p-4">
+          <div className="w-14 rounded-lg bg-brand-soft py-1.5 text-center text-brand">
+            <p className="text-xs uppercase">{formatDate(ev.date, { month: 'short' })}</p>
+            <p className="text-xl font-bold leading-tight">{formatDate(ev.date, { day: 'numeric' })}</p>
           </div>
-          <div className="flex-1">
-            <p className="font-medium">{ev.name}</p>
-            <p className="text-sm text-stone-500">
-              {formatDate(ev.date, { weekday: 'short', month: 'short', day: 'numeric' })} at {ev.location}
+          <div className="min-w-0 flex-1">
+            <p className="font-semibold text-ink">{ev.name}</p>
+            <p className="text-sm text-muted">
+              {formatDate(ev.date)} at {ev.location}
             </p>
           </div>
-          {ev.my_status === 'assigned' && (
-            <span className="rounded-full bg-green-100 px-3 py-1 text-xs font-medium text-green-800">Stall {ev.slot_label}</span>
-          )}
-          {ev.my_status === 'pre_registered' && (
-            <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">Pre-registered · waiting for stall</span>
-          )}
+          {ev.my_status === 'assigned' && <Badge tone="success">Stall {ev.slot_label}</Badge>}
+          {ev.my_status === 'pre_registered' && <Badge tone="warning">Pre-registered · waiting for stall</Badge>}
           {ev.my_status ? (
-            <button onClick={() => onWithdraw(ev)} className="rounded-md border border-stone-300 px-3 py-2 text-xs hover:bg-stone-100">
+            <Button size="sm" variant="secondary" onClick={() => onWithdraw(ev)}>
               Withdraw
-            </button>
+            </Button>
           ) : ev.registration_open ? (
-            <button onClick={() => onPreRegister(ev.event_id)} className="rounded-md bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700">
+            <Button size="sm" onClick={() => onPreRegister(ev.event_id)}>
               Pre-register
-            </button>
+            </Button>
           ) : (
-            <span className="text-xs text-stone-500">Registration closed</span>
+            <span className="text-xs text-muted">Registration closed</span>
           )}
-        </li>
+        </Card>
       ))}
     </ul>
   )

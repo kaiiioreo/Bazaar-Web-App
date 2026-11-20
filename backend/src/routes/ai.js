@@ -26,7 +26,9 @@ router.post('/chat', optionalAuth, async (req, res) => {
       where: { status: 'upcoming', date: { gte: todayUTC() } },
       orderBy: { date: 'asc' },
       take: 5,
-      include: { schedules: { where: { status: 'assigned' }, include: { vendor: { select: { business_name: true } } } } },
+      include: {
+        schedules: { where: { status: 'assigned' }, include: { vendor: { select: { business_name: true } } } },
+      },
     }),
     prisma.vendorProfile.findMany({
       where: { user: { status: 'active' } },
@@ -82,7 +84,11 @@ router.post('/generate-listing', requireAuth, requireRole('vendor'), async (req,
   const notes = String(req.body?.notes || '').trim()
   if (notes.length < 3) throw new HttpError(400, 'Describe your product in a few words first.')
   const profile = await prisma.vendorProfile.findUnique({ where: { vendor_id: req.user.user_id } })
-  const draft = await generateListing({ notes: notes.slice(0, 1000), categories: CATEGORIES, vendorName: profile?.business_name })
+  const draft = await generateListing({
+    notes: notes.slice(0, 1000),
+    categories: CATEGORIES,
+    vendorName: profile?.business_name,
+  })
   res.json(draft)
 })
 

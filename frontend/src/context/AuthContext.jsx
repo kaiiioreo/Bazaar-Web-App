@@ -16,6 +16,8 @@ export function homeFor(user) {
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [loading, setLoading] = useState(() => Boolean(getToken()))
+  // true after the user clicks Log out (vs. a session that expired)
+  const [loggedOut, setLoggedOut] = useState(false)
 
   // Restore the session after a page refresh.
   useEffect(() => {
@@ -37,6 +39,7 @@ export function AuthProvider({ children }) {
   const login = useCallback(async (email, password) => {
     const data = await authApi.login(email, password)
     setToken(data.token)
+    setLoggedOut(false)
     setUser(data.user)
     return data.user
   }, [])
@@ -44,12 +47,14 @@ export function AuthProvider({ children }) {
   const register = useCallback(async (body) => {
     const data = await authApi.register(body)
     setToken(data.token)
+    setLoggedOut(false)
     setUser(data.user)
     return data.user
   }, [])
 
   const logout = useCallback(() => {
     setToken(null)
+    setLoggedOut(true)
     setUser(null)
   }, [])
 
@@ -61,8 +66,8 @@ export function AuthProvider({ children }) {
   }, [])
 
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, refresh, setUser }),
-    [user, loading, login, register, logout, refresh],
+    () => ({ user, loading, loggedOut, login, register, logout, refresh, setUser }),
+    [user, loading, loggedOut, login, register, logout, refresh],
   )
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

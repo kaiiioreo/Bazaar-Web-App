@@ -47,16 +47,22 @@ function MakerCard({ maker }) {
       <Link className="maker-image" to={maker.to ?? '/customer'} aria-label={`Discover ${maker.name}`}>
         <img src={maker.image} alt={maker.imageAlt} loading="lazy" />
         <span className="image-tag">{maker.tag}</span>
-        <span className="save-button" aria-hidden="true"><Icon name="arrow-up-right" size={17} /></span>
+        <span className="save-button" aria-hidden="true">
+          <Icon name="arrow-up-right" size={17} />
+        </span>
       </Link>
       <div className="maker-details">
         <div>
           <h3>{maker.name}</h3>
           <p>{maker.type}</p>
         </div>
-        <span className="maker-rating"><span aria-hidden="true">★</span> {maker.rating}</span>
+        <span className="maker-rating">
+          <span aria-hidden="true">★</span> {maker.rating}
+        </span>
       </div>
-      <div className="maker-location"><Icon name="leaf" size={14} /> {maker.location}</div>
+      <div className="maker-location">
+        <Icon name="leaf" size={14} /> {maker.location}
+      </div>
     </article>
   )
 }
@@ -95,8 +101,14 @@ export default function HomePage() {
     <>
       <section className="hero-section" id="discover">
         <div className="hero-copy">
-          <span className="eyebrow"><span className="eyebrow-dot" /> YOUR NEIGHBORHOOD, A LITTLE CLOSER</span>
-          <h1>Find local goods.<br />Meet the <span>makers.</span></h1>
+          <span className="eyebrow">
+            <span className="eyebrow-dot" /> YOUR NEIGHBORHOOD, A LITTLE CLOSER
+          </span>
+          <h1>
+            Find local goods.
+            <br />
+            Meet the <span>makers.</span>
+          </h1>
           <p className="hero-description">
             Browse vendors, prices, stock, and upcoming bazaar schedules as a guest. No account needed.
           </p>
@@ -104,13 +116,22 @@ export default function HomePage() {
             <Link className="button button-dark button-large" to="/customer">
               Browse vendors <Icon name="arrow" size={18} />
             </Link>
-            <Link className="text-link" to="/customer/schedule">Check the bazaar schedule <Icon name="arrow-up-right" size={16} /></Link>
+            <Link className="text-link" to="/customer/schedule">
+              Check the bazaar schedule <Icon name="arrow-up-right" size={16} />
+            </Link>
           </div>
           <div className="hero-proof">
             <div className="avatar-stack" aria-hidden="true">
-              <span>J</span><span>M</span><span>A</span><span>K</span>
+              <span>J</span>
+              <span>M</span>
+              <span>A</span>
+              <span>K</span>
             </div>
-            <p><strong>Browse as a guest.</strong><br />No account needed to get started.</p>
+            <p>
+              <strong>Browse as a guest.</strong>
+              <br />
+              No account needed to get started.
+            </p>
           </div>
         </div>
         <div className="hero-art" aria-label="A look inside the local maker community">
@@ -127,26 +148,42 @@ export default function HomePage() {
             />
           </div>
           <div className="hero-note">
-            <span className="hero-note-icon"><Icon name="search" size={19} /></span>
-            <span><strong>Find local goods,</strong><br />vendors, and event dates.</span>
+            <span className="hero-note-icon">
+              <Icon name="search" size={19} />
+            </span>
+            <span>
+              <strong>Find local goods,</strong>
+              <br />
+              vendors, and event dates.
+            </span>
           </div>
-          <span className="hero-scribble" aria-hidden="true">✳</span>
+          <span className="hero-scribble" aria-hidden="true">
+            ✳
+          </span>
         </div>
-        <a className="scroll-cue" href="#categories"><span /> SCROLL A LITTLE</a>
+        <a className="scroll-cue" href="#categories">
+          <span /> SCROLL A LITTLE
+        </a>
       </section>
 
       <section className="category-section section-wrap" id="categories">
         <div className="section-heading category-heading">
           <div>
             <span className="eyebrow">START WITH WHAT YOU’RE LOOKING FOR</span>
-            <h2>Browse by <span>category.</span></h2>
+            <h2>
+              Browse by <span>category.</span>
+            </h2>
           </div>
-          <Link className="text-link" to="/customer">Browse all categories <Icon name="arrow-up-right" size={16} /></Link>
+          <Link className="text-link" to="/customer">
+            Browse all categories <Icon name="arrow-up-right" size={16} />
+          </Link>
         </div>
         <div className="category-list">
           {categories.map((category) => (
             <Link className="category-item" to="/customer" key={category.name}>
-              <span className={`category-icon category-${category.color}`} aria-hidden="true">{category.icon}</span>
+              <span className={`category-icon category-${category.color}`} aria-hidden="true">
+                {category.icon}
+              </span>
               <span>{category.name}</span>
               <Icon className="category-arrow" name="arrow-up-right" size={15} />
             </Link>
@@ -158,16 +195,24 @@ export default function HomePage() {
         <div className="section-wrap">
           <div className="section-heading">
             <div>
-              <span className="eyebrow"><span className="eyebrow-dot" /> BAZAAR VENDORS</span>
-              <h2>Meet the <span>vendors.</span></h2>
-              <p className="section-description">Top-rated vendors right now. Open a vendor to see prices, stock, and where to find them.</p>
+              <span className="eyebrow">
+                <span className="eyebrow-dot" /> BAZAAR VENDORS
+              </span>
+              <h2>
+                Meet the <span>vendors.</span>
+              </h2>
+              <p className="section-description">
+                Top-rated vendors right now. Open a vendor to see prices, stock, and where to find them.
+              </p>
             </div>
             <Link className="button button-outline" to="/register?type=vendor">
               Vendor sign up <Icon name="arrow" size={17} />
             </Link>
           </div>
           <div className="maker-grid">
-            {shownMakers.map((maker) => <MakerCard key={maker.name} maker={maker} />)}
+            {shownMakers.map((maker) => (
+              <MakerCard key={maker.name} maker={maker} />
+            ))}
           </div>
         </div>
       </section>
@@ -175,11 +220,19 @@ export default function HomePage() {
       <section className="event-section section-wrap" id="events">
         <div className="event-card">
           <div className="event-copy">
-            <span className="eyebrow"><span className="eyebrow-dot" /> BAZAAR SCHEDULE</span>
-            <h2>Find a bazaar<br />and see who’s <span>attending.</span></h2>
-            <p>{next
-              ? `Next up: ${next.name} at ${next.location}, with ${next.vendors.length} vendors confirmed so far.`
-              : 'Check event dates and locations, then find which vendors will be there.'}</p>
+            <span className="eyebrow">
+              <span className="eyebrow-dot" /> BAZAAR SCHEDULE
+            </span>
+            <h2>
+              Find a bazaar
+              <br />
+              and see who’s <span>attending.</span>
+            </h2>
+            <p>
+              {next
+                ? `Next up: ${next.name} at ${next.location}, with ${next.vendors.length} vendors confirmed so far.`
+                : 'Check event dates and locations, then find which vendors will be there.'}
+            </p>
             <Link className="button button-dark button-large" to="/customer/schedule">
               See the full schedule <Icon name="arrow" size={18} />
             </Link>
@@ -197,29 +250,44 @@ export default function HomePage() {
             </div>
             <span className="event-caption">See event details and participating vendors.</span>
           </div>
-          <span className="event-decoration" aria-hidden="true">✳</span>
+          <span className="event-decoration" aria-hidden="true">
+            ✳
+          </span>
         </div>
       </section>
 
       <section className="maker-cta" id="for-makers">
         <div className="maker-cta-inner">
           <span className="eyebrow">FOR VENDORS</span>
-          <h2>Bring your business<br />to the <span>bazaar.</span></h2>
+          <h2>
+            Bring your business
+            <br />
+            to the <span>bazaar.</span>
+          </h2>
           <p>Create a vendor account to get started. Admins review vendor applications before participation.</p>
           <Link className="button button-light button-large" to="/register?type=vendor">
             Create a vendor account <Icon name="arrow" size={18} />
           </Link>
-          <span className="maker-cta-flower" aria-hidden="true">✿</span>
+          <span className="maker-cta-flower" aria-hidden="true">
+            ✿
+          </span>
         </div>
       </section>
 
       <footer className="site-footer">
         <div className="footer-main">
           <Link className="brand footer-brand" to="/">
-            <span className="brand-mark"><Icon name="leaf" size={21} /></span>
-            <span>bazaar<span className="brand-period">.</span></span>
+            <span className="brand-mark">
+              <Icon name="leaf" size={21} />
+            </span>
+            <span>
+              bazaar<span className="brand-period">.</span>
+            </span>
           </Link>
-          <p>A little more local.<br />A little more lovely.</p>
+          <p>
+            A little more local.
+            <br />A little more lovely.
+          </p>
           <div className="footer-links">
             <a href="#discover">Explore</a>
             <a href="#events">Markets & events</a>
@@ -229,7 +297,9 @@ export default function HomePage() {
         </div>
         <div className="footer-bottom">
           <span>© 2026 Bazaar. Made for the love of local.</span>
-          <span>Good things grow here <span aria-hidden="true">✳</span></span>
+          <span>
+            Good things grow here <span aria-hidden="true">✳</span>
+          </span>
         </div>
       </footer>
     </>

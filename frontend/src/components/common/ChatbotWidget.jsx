@@ -23,7 +23,10 @@ export default function ChatbotWidget() {
       const reply = await chat(next.map((m) => ({ role: m.from === 'you' ? 'user' : 'assistant', content: m.text })))
       setMessages((current) => [...current, { from: 'bazaar', text: reply }])
     } catch (err) {
-      setMessages((current) => [...current, { from: 'bazaar', text: `Sorry, I couldn't answer that right now. ${err.message}` }])
+      setMessages((current) => [
+        ...current,
+        { from: 'bazaar', text: `Sorry, I couldn't answer that right now. ${err.message}` },
+      ])
     } finally {
       setSending(false)
     }
@@ -34,7 +37,9 @@ export default function ChatbotWidget() {
       {isOpen && (
         <section className="chat-panel" aria-label="Bazaar chat assistant">
           <div className="chat-heading">
-            <span className="chat-avatar"><Icon name="sparkles" size={19} /></span>
+            <span className="chat-avatar">
+              <Icon name="sparkles" size={19} />
+            </span>
             <div>
               <strong>Ask Bazaar</strong>
               <span>Here to help you find the good stuff</span>
@@ -70,7 +75,9 @@ export default function ChatbotWidget() {
               sendMessage()
             }}
           >
-            <label className="sr-only" htmlFor="chat-message">Ask Bazaar a question</label>
+            <label className="sr-only" htmlFor="chat-message">
+              Ask Bazaar a question
+            </label>
             <input
               id="chat-message"
               onChange={(event) => setInput(event.target.value)}

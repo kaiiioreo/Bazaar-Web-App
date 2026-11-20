@@ -15,7 +15,8 @@ export default function useApi(fetcher, deps = []) {
 
   useEffect(() => {
     let active = true
-    fetcherRef.current()
+    fetcherRef
+      .current()
       .then((data) => active && setState({ key, data, error: '' }))
       .catch((err) => active && setState((s) => ({ key, data: s.data, error: err.message })))
     return () => {

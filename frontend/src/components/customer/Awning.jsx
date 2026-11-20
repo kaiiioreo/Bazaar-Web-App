@@ -6,5 +6,5 @@ export default function Awning({ color = '#0f766e', className = 'h-3' }) {
       className={`w-full ${className}`}
       style={{ backgroundImage: `repeating-linear-gradient(90deg, ${color} 0 14px, #ffffff 14px 28px)` }}
     />
-  );
+  )
 }

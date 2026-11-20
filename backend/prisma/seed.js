@@ -27,7 +27,10 @@ async function main() {
 
   const vendorSeed = [
     {
-      email: 'vendor@bazaar.ph', owner: 'Nena Santos', business_name: "Nena's Rosquillos", category: 'Snacks',
+      email: 'vendor@bazaar.ph',
+      owner: 'Nena Santos',
+      business_name: "Nena's Rosquillos",
+      category: 'Snacks',
       description: 'Hand-rolled sweet rosquillos baked fresh every morning, a Liloan family recipe.',
       ai_summary: 'Reviewers praise the crisp texture and fair prices. A few mention that stock runs out before noon.',
       contact_phone: '0917 123 4567',
@@ -37,7 +40,10 @@ async function main() {
       ],
     },
     {
-      email: 'carcarcrunch@bazaar.ph', owner: 'Ramil Ybañez', business_name: 'Carcar Crunch', category: 'Snacks',
+      email: 'carcarcrunch@bazaar.ph',
+      owner: 'Ramil Ybañez',
+      business_name: 'Carcar Crunch',
+      category: 'Snacks',
       description: 'Crispy chicharon in plain, spicy, and vinegar-dip packs.',
       ai_summary: 'Customers love the spicy pack and the generous portions. Some find the plain pack too salty.',
       products: [
@@ -46,7 +52,10 @@ async function main() {
       ],
     },
     {
-      email: 'sugbomango@bazaar.ph', owner: 'Lita Gomez', business_name: 'Sugbo Dried Mango', category: 'Food',
+      email: 'sugbomango@bazaar.ph',
+      owner: 'Lita Gomez',
+      business_name: 'Sugbo Dried Mango',
+      category: 'Food',
       description: 'Sweet dried Cebu mangoes, sold by the pack or as gift boxes.',
       ai_summary: 'Consistently described as sweet, chewy, and good value. Gift boxes are a repeat favorite.',
       products: [
@@ -55,7 +64,10 @@ async function main() {
       ],
     },
     {
-      email: 'habal@bazaar.ph', owner: 'Grace Mendoza', business_name: 'Habal Handmade', category: 'Crafts',
+      email: 'habal@bazaar.ph',
+      owner: 'Grace Mendoza',
+      business_name: 'Habal Handmade',
+      category: 'Crafts',
       description: 'Woven bags, coasters, and keychains made by local weavers.',
       ai_summary: 'Buyers like the sturdy weaving and bright colors. Custom orders take longer than expected.',
       products: [
@@ -64,7 +76,10 @@ async function main() {
       ],
     },
     {
-      email: 'kapesugbo@bazaar.ph', owner: 'Paolo Dizon', business_name: 'Kape Sugbo', category: 'Drinks',
+      email: 'kapesugbo@bazaar.ph',
+      owner: 'Paolo Dizon',
+      business_name: 'Kape Sugbo',
+      category: 'Drinks',
       description: 'Locally roasted barako coffee beans and cold brew bottles.',
       ai_summary: 'Strong, smooth flavor is the most common compliment. Cold brew sells out quickly.',
       products: [
@@ -73,7 +88,10 @@ async function main() {
       ],
     },
     {
-      email: 'tabo@bazaar.ph', owner: 'Ken Sarmiento', business_name: 'Tabo Plants', category: 'Plants',
+      email: 'tabo@bazaar.ph',
+      owner: 'Ken Sarmiento',
+      business_name: 'Tabo Plants',
+      category: 'Plants',
       description: 'Small succulents, herbs, and starter pots for apartments.',
       ai_summary: 'Healthy plants and helpful care tips from the seller. Limited variety on busy days.',
       products: [
@@ -82,8 +100,13 @@ async function main() {
       ],
     },
     {
-      email: 'chocobod@bazaar.ph', owner: 'Ramon Dela Cruz', business_name: 'Choco Bod Sweets', category: 'Baked Goods',
-      description: 'Chocolate treats and pastries.', status: 'suspended', ai_summary: '',
+      email: 'chocobod@bazaar.ph',
+      owner: 'Ramon Dela Cruz',
+      business_name: 'Choco Bod Sweets',
+      category: 'Baked Goods',
+      description: 'Chocolate treats and pastries.',
+      status: 'suspended',
+      ai_summary: '',
       products: [['Chocobod cake', 280, 'Baked Goods', 'out_of_stock', 'Rich chocolate cake, whole.']],
     },
   ]
@@ -93,16 +116,32 @@ async function main() {
     const user = await makeUser(v.owner, v.email, 'vendor', v.status ?? 'active', 70 - i)
     await prisma.vendorApplication.create({
       data: {
-        user_id: user.user_id, business_name: v.business_name, product_category: v.category,
-        business_details: v.description, status: 'approved', submitted_at: daysAgo(65 - i), reviewed_at: daysAgo(63 - i),
+        user_id: user.user_id,
+        business_name: v.business_name,
+        product_category: v.category,
+        business_details: v.description,
+        status: 'approved',
+        submitted_at: daysAgo(65 - i),
+        reviewed_at: daysAgo(63 - i),
       },
     })
     const profile = await prisma.vendorProfile.create({
       data: {
-        vendor_id: user.user_id, business_name: v.business_name, category: v.category, description: v.description,
-        contact_info: v.email, contact_phone: v.contact_phone ?? null, ai_summary: v.ai_summary || null,
+        vendor_id: user.user_id,
+        business_name: v.business_name,
+        category: v.category,
+        description: v.description,
+        contact_info: v.email,
+        contact_phone: v.contact_phone ?? null,
+        ai_summary: v.ai_summary || null,
         products: {
-          create: v.products.map(([name, price, category, stock_status, description]) => ({ name, price, category, stock_status, description })),
+          create: v.products.map(([name, price, category, stock_status, description]) => ({
+            name,
+            price,
+            category,
+            stock_status,
+            description,
+          })),
         },
       },
     })
@@ -112,16 +151,63 @@ async function main() {
 
   // Applicants still waiting for review (vendor accounts without a profile yet).
   const applicants = [
-    ["Aling Nena's Fresh Produce", 'Nena Villanueva', 'freshproduce@bazaar.ph', 'Produce', 'Vegetables and fruits harvested daily from our family farm in Dalaguete.', 'pending', false, null, 6],
-    ['Sweet Tooth Bakes', 'Marco Reyes', 'sweettooth@bazaar.ph', 'Baked Goods', 'Homemade pastries.', 'pending', true, 'Business details are very short or incomplete.', 4],
-    ['Quick Cheap Stuff', 'Ben Cruz', 'quickcheap@bazaar.ph', 'Other', 'Various items.', 'rejected', true, 'Business details are very short or incomplete.', 20],
+    [
+      "Aling Nena's Fresh Produce",
+      'Nena Villanueva',
+      'freshproduce@bazaar.ph',
+      'Produce',
+      'Vegetables and fruits harvested daily from our family farm in Dalaguete.',
+      'pending',
+      false,
+      null,
+      6,
+    ],
+    [
+      'Sweet Tooth Bakes',
+      'Marco Reyes',
+      'sweettooth@bazaar.ph',
+      'Baked Goods',
+      'Homemade pastries.',
+      'pending',
+      true,
+      'Business details are very short or incomplete.',
+      4,
+    ],
+    [
+      'Quick Cheap Stuff',
+      'Ben Cruz',
+      'quickcheap@bazaar.ph',
+      'Other',
+      'Various items.',
+      'rejected',
+      true,
+      'Business details are very short or incomplete.',
+      20,
+    ],
   ]
-  for (const [business_name, name, email, product_category, business_details, status, ai_flag, ai_flag_reason, ago] of applicants) {
+  for (const [
+    business_name,
+    name,
+    email,
+    product_category,
+    business_details,
+    status,
+    ai_flag,
+    ai_flag_reason,
+    ago,
+  ] of applicants) {
     const user = await makeUser(name, email, 'vendor', 'active', ago + 1)
     await prisma.vendorApplication.create({
       data: {
-        user_id: user.user_id, business_name, product_category, business_details, status, ai_flag, ai_flag_reason,
-        submitted_at: daysAgo(ago), reviewed_at: status === 'pending' ? null : daysAgo(ago - 2),
+        user_id: user.user_id,
+        business_name,
+        product_category,
+        business_details,
+        status,
+        ai_flag,
+        ai_flag_reason,
+        submitted_at: daysAgo(ago),
+        reviewed_at: status === 'pending' ? null : daysAgo(ago - 2),
         rejection_reason: status === 'rejected' ? 'Please describe the products you plan to sell.' : null,
       },
     })
@@ -152,26 +238,86 @@ async function main() {
     [c('customer@bazaar.ph'), kape, 5, 'Smooth and strong. The cold brew is a must.', 36],
     [c('grace@example.com'), carcar, 4, 'Spicy pack is addictive. Plain was a bit salty.', 40],
     [c('miguel@example.com'), habal, 4, 'Sturdy tote. Custom color took two weeks.', 46],
-    [c('customer@bazaar.ph'), rosquillos, 3, 'Good rosquillos but the line was very long and I waited almost 30 minutes.', 12],
-    [c('user88213@example.com'), carcar, 5, 'BEST CHICHARON EVER!!! Amazing amazing amazing, 10/10, everyone must buy here!!!', 16, true,
-      'Possible fake review: generic praise, repeated phrasing, and excessive punctuation.'],
-    [c('angela@example.com'), chocobod, 1, 'Terrible. The owner was rude to me and called me names. Absolute garbage seller, avoid this useless person.', 13, true,
-      'Possible abusive language and a personal attack on the vendor.'],
-    [c('promo@example.com'), kape, 5, 'Great coffee! Also check out my shop for cheap deals, visit www.example.com now!!!', 11, true,
-      'Possible spam: contains a promotional link unrelated to the vendor.'],
+    [
+      c('customer@bazaar.ph'),
+      rosquillos,
+      3,
+      'Good rosquillos but the line was very long and I waited almost 30 minutes.',
+      12,
+    ],
+    [
+      c('user88213@example.com'),
+      carcar,
+      5,
+      'BEST CHICHARON EVER!!! Amazing amazing amazing, 10/10, everyone must buy here!!!',
+      16,
+      true,
+      'Possible fake review: generic praise, repeated phrasing, and excessive punctuation.',
+    ],
+    [
+      c('angela@example.com'),
+      chocobod,
+      1,
+      'Terrible. The owner was rude to me and called me names. Absolute garbage seller, avoid this useless person.',
+      13,
+      true,
+      'Possible abusive language and a personal attack on the vendor.',
+    ],
+    [
+      c('promo@example.com'),
+      kape,
+      5,
+      'Great coffee! Also check out my shop for cheap deals, visit www.example.com now!!!',
+      11,
+      true,
+      'Possible spam: contains a promotional link unrelated to the vendor.',
+    ],
     [c('grace@example.com'), tabo, 1, 'Worst place ever, do not go.', 20, false, null, 'removed'],
   ]
-  for (const [customer_id, vendor, rating, comment, ago, ai_flag = false, ai_flag_reason = null, status = 'visible'] of reviewSeed) {
+  for (const [
+    customer_id,
+    vendor,
+    rating,
+    comment,
+    ago,
+    ai_flag = false,
+    ai_flag_reason = null,
+    status = 'visible',
+  ] of reviewSeed) {
     await prisma.review.create({
-      data: { customer_id, vendor_id: vendor.vendor_id, rating, comment, ai_flag, ai_flag_reason, status, created_at: daysAgo(ago) },
+      data: {
+        customer_id,
+        vendor_id: vendor.vendor_id,
+        rating,
+        comment,
+        ai_flag,
+        ai_flag_reason,
+        status,
+        created_at: daysAgo(ago),
+      },
     })
   }
 
   /* ---------- Events, stalls, and vendor schedules ---------- */
-  async function makeEvent({ name, offset, location, total_slots, status = 'upcoming', registration_open = true, assigned = [], waiting = [] }) {
+  async function makeEvent({
+    name,
+    offset,
+    location,
+    total_slots,
+    status = 'upcoming',
+    registration_open = true,
+    assigned = [],
+    waiting = [],
+  }) {
     const ev = await prisma.bazaarEvent.create({
       data: {
-        name, date: daysFromToday(offset), location, total_slots, status, registration_open, created_by: admin.user_id,
+        name,
+        date: daysFromToday(offset),
+        location,
+        total_slots,
+        status,
+        registration_open,
+        created_by: admin.user_id,
         slots: { create: Array.from({ length: total_slots }, (_, i) => ({ label: label(i) })) },
       },
       include: { slots: true },
@@ -179,46 +325,98 @@ async function main() {
     const slots = ev.slots.sort((a, b) => a.slot_id - b.slot_id)
     for (const [i, vendor] of assigned.entries()) {
       const slot = slots[i]
-      await prisma.bazaarSlot.update({ where: { slot_id: slot.slot_id }, data: { vendor_id: vendor.vendor_id, status: 'assigned' } })
+      await prisma.bazaarSlot.update({
+        where: { slot_id: slot.slot_id },
+        data: { vendor_id: vendor.vendor_id, status: 'assigned' },
+      })
       await prisma.vendorSchedule.create({
-        data: { vendor_id: vendor.vendor_id, event_id: ev.event_id, slot_id: slot.slot_id, status: 'assigned', registered_at: daysAgo(10 + i) },
+        data: {
+          vendor_id: vendor.vendor_id,
+          event_id: ev.event_id,
+          slot_id: slot.slot_id,
+          status: 'assigned',
+          registered_at: daysAgo(10 + i),
+        },
       })
     }
     for (const [i, vendor] of waiting.entries()) {
-      await prisma.vendorSchedule.create({ data: { vendor_id: vendor.vendor_id, event_id: ev.event_id, registered_at: daysAgo(3 + i) } })
+      await prisma.vendorSchedule.create({
+        data: { vendor_id: vendor.vendor_id, event_id: ev.event_id, registered_at: daysAgo(3 + i) },
+      })
     }
     return ev
   }
 
   await makeEvent({
-    name: 'Plaza Independencia Bazaar', offset: 7, location: 'Plaza Independencia, Cebu City', total_slots: 20,
-    assigned: [rosquillos, mango, kape, tabo], waiting: [carcar],
+    name: 'Plaza Independencia Bazaar',
+    offset: 7,
+    location: 'Plaza Independencia, Cebu City',
+    total_slots: 20,
+    assigned: [rosquillos, mango, kape, tabo],
+    waiting: [carcar],
   })
   await makeEvent({
-    name: 'Fuente Weekend Market', offset: 14, location: 'Fuente Osmeña Circle, Cebu City', total_slots: 16,
-    assigned: [rosquillos, carcar], waiting: [habal],
+    name: 'Fuente Weekend Market',
+    offset: 14,
+    location: 'Fuente Osmeña Circle, Cebu City',
+    total_slots: 16,
+    assigned: [rosquillos, carcar],
+    waiting: [habal],
   })
   await makeEvent({
-    name: 'Christmas Bazaar', offset: 28, location: 'IT Park Grounds, Cebu City', total_slots: 24, registration_open: true,
+    name: 'Christmas Bazaar',
+    offset: 28,
+    location: 'IT Park Grounds, Cebu City',
+    total_slots: 24,
+    registration_open: true,
   })
   await makeEvent({
-    name: 'Harvest Festival Bazaar', offset: -28, location: 'Mandaue City Hall Grounds', total_slots: 15,
-    status: 'completed', registration_open: false, assigned: [rosquillos, habal],
+    name: 'Harvest Festival Bazaar',
+    offset: -28,
+    location: 'Mandaue City Hall Grounds',
+    total_slots: 15,
+    status: 'completed',
+    registration_open: false,
+    assigned: [rosquillos, habal],
   })
   await makeEvent({
-    name: 'Rainy Day Night Market', offset: -49, location: 'Ayala Terraces, Cebu City', total_slots: 12,
-    status: 'cancelled', registration_open: false,
+    name: 'Rainy Day Night Market',
+    offset: -49,
+    location: 'Ayala Terraces, Cebu City',
+    total_slots: 12,
+    status: 'cancelled',
+    registration_open: false,
   })
 
   /* ---------- Favorites and notifications ---------- */
   for (const v of [rosquillos, mango, kape]) {
-    await prisma.favorite.create({ data: { customer_id: c('customer@bazaar.ph'), target_type: 'vendor', vendor_id: v.vendor_id } })
+    await prisma.favorite.create({
+      data: { customer_id: c('customer@bazaar.ph'), target_type: 'vendor', vendor_id: v.vendor_id },
+    })
   }
   await prisma.notification.createMany({
     data: [
-      { user_id: c('customer@bazaar.ph'), type: 'schedule_update', message: "Nena's Rosquillos will be at Plaza Independencia Bazaar (Stall A-01).", link: `/customer/vendors/${rosquillos.vendor_id}`, created_at: daysAgo(2) },
-      { user_id: c('customer@bazaar.ph'), type: 'restock', message: 'Mango gift box from Sugbo Dried Mango is back in stock.', link: `/customer/vendors/${mango.vendor_id}`, created_at: daysAgo(1) },
-      { user_id: rosquillos.vendor_id, type: 'stall_assigned', message: 'You were assigned Stall A-01 for Plaza Independencia Bazaar.', link: '/vendor', created_at: daysAgo(2) },
+      {
+        user_id: c('customer@bazaar.ph'),
+        type: 'schedule_update',
+        message: "Nena's Rosquillos will be at Plaza Independencia Bazaar (Stall A-01).",
+        link: `/customer/vendors/${rosquillos.vendor_id}`,
+        created_at: daysAgo(2),
+      },
+      {
+        user_id: c('customer@bazaar.ph'),
+        type: 'restock',
+        message: 'Mango gift box from Sugbo Dried Mango is back in stock.',
+        link: `/customer/vendors/${mango.vendor_id}`,
+        created_at: daysAgo(1),
+      },
+      {
+        user_id: rosquillos.vendor_id,
+        type: 'stall_assigned',
+        message: 'You were assigned Stall A-01 for Plaza Independencia Bazaar.',
+        link: '/vendor',
+        created_at: daysAgo(2),
+      },
     ],
   })
 

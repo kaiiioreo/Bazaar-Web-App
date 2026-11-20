@@ -7,7 +7,7 @@ A web app that connects bazaar vendors, customers, and organizers (Admins). Vend
 - **Frontend:** React (Vite), Tailwind CSS, React Router, Axios
 - **Backend:** Node.js, Express 5, Prisma 7, JWT auth (bcrypt-hashed passwords)
 - **Database:** PostgreSQL (Neon, Supabase, or local)
-- **AI:** Claude or OpenAI API, called from the backend only (`backend/src/services/ai.js`). Every AI feature has a built-in fallback, so the app works without an API key.
+- **AI:** Google Gemini (free tier) by default; Claude or OpenAI also supported. Called from the backend only (`backend/src/services/ai.js`). Every AI feature has a built-in fallback, so the app works without an API key or when the free quota runs out.
 
 ## Prerequisites
 - Node.js LTS (20.x or newer): check with `node -v`
@@ -49,7 +49,7 @@ npm run dev               # http://localhost:5173 (forwards /api to the backend)
 | Vendor (waiting for approval) | `sweettooth@bazaar.ph` |
 | Customer | `customer@bazaar.ph` |
 
-**Optional:** add `AI_API_KEY` (and `AI_PROVIDER`, `AI_MODEL`) to `backend/.env` for real AI answers, and `SMTP_*` settings for real password-reset emails. Without SMTP, reset links are printed in the backend terminal and shown on the page in development.
+**Optional AI:** get a free Gemini key at https://aistudio.google.com/apikey, put it in `backend/.env` as `AI_API_KEY`, then run `npm run ai:check` in `backend/` to confirm it works. Add `SMTP_*` settings for real password-reset emails. Without SMTP, reset links are printed in the backend terminal and shown on the page in development.
 
 ## Project Structure
 ```
@@ -67,8 +67,9 @@ backend/
 
 frontend/src/
 ├── api/          # Axios calls, one file per area (client.js adds the login token)
-├── context/      # AuthContext: who is logged in
+├── context/      # AuthContext (who is logged in), FavoritesContext (saved vendors)
 ├── hooks/        # useApi: load data with loading/error state
+├── components/ui/ # Shared design-system components (Button, Card, Table, Modal…)
 ├── layouts/      # Page shells (e.g. AdminLayout with sidebar)
 ├── pages/        # One folder per role: admin/, vendor/, customer/
 └── components/   # Reusable UI pieces (admin/, common/, customer/, vendor/)
@@ -94,7 +95,8 @@ All routes start with `/api`. 🔒 = needs login.
 - `/forgot-password` is the password-reset entry point.
 - `/reset-password?token=...` is where the emailed reset link lands.
 - `/customer/...` pages can be browsed by guests; favorites, reviews, and `/customer/account` need a customer login.
-- `/vendor` shows the application form until an Admin approves the vendor, then the full dashboard.
+- `/vendor` shows the application form until an Admin approves the vendor. Approved vendors get tabs with their own URLs: `/vendor/products`, `/vendor/schedule`, `/vendor/profile`, `/vendor/assistant`.
+- **Navigation:** every page has exactly one navigation. Public and customer pages use the top navbar (`components/common/Navbar.jsx`), whose links change by role. Admin and Vendor pages use one shared sidebar (`components/common/DashboardShell.jsx`) fed each role's links, with the notification bell, a link back to the public site, and Log out. Both work on phones.
 - `/admin` is only for Admin accounts.
 - The Bazaar chat widget calls `POST /api/ai/chat` and is shown to guests and customers.
 
@@ -128,6 +130,8 @@ All routes start with `/api`. 🔒 = needs login.
 
 ## Conventions
 - Component files use PascalCase (`StatCard.jsx`); folders use lowercase.
+- Build screens from the shared components in `frontend/src/components/ui/` and the colour tokens in `frontend/src/index.css` (see `frontend/README.md`). Never use raw Tailwind colours like `bg-blue-600`.
+- Format with Prettier before committing: `npm run format` (in `frontend/` and `backend/`).
 - Use Tailwind classes for styling; avoid separate CSS files.
 - Pages load data through `src/api/` and the `useApi` hook; never call `fetch` or Axios directly in a page.
 - API fields use the SDD data dictionary names (snake_case). The customer pages convert them to camelCase in `src/api/catalog.js`.

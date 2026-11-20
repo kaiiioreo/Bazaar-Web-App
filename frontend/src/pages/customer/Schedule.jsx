@@ -1,24 +1,28 @@
-import ScheduleCard from '../../components/customer/ScheduleCard';
-import LoadState from '../../components/common/LoadState';
-import useApi from '../../hooks/useApi';
-import { getEvents } from '../../api/catalog';
+import ScheduleCard from '../../components/customer/ScheduleCard'
+import LoadState from '../../components/common/LoadState'
+import PageHeader from '../../components/ui/PageHeader'
+import EmptyState from '../../components/ui/EmptyState'
+import useApi from '../../hooks/useApi'
+import { getEvents } from '../../api/catalog'
 
+// Bazaar schedule: which vendors attend which date and location (SRS 3.1.3.5, 3.1.4.2).
 export default function Schedule() {
-  const { data: events, loading, error, reload } = useApi(() => getEvents(), []);
+  const { data: events, loading, error, reload } = useApi(() => getEvents(), [])
 
   return (
     <div className="py-8">
-      <h1 className="text-3xl font-extrabold text-teal-950">Bazaar schedule</h1>
-      <p className="mt-1 text-stone-600">Upcoming bazaars and the vendors who will be there.</p>
+      <PageHeader title="Bazaar schedule" description="Upcoming bazaars and the vendors who will be there." />
       {loading || error ? (
         <LoadState loading={loading} error={error} onRetry={reload} />
       ) : events.length === 0 ? (
-        <p className="mt-6 text-stone-600">No upcoming bazaars yet. Check back soon.</p>
+        <EmptyState>No upcoming bazaars yet. Check back soon.</EmptyState>
       ) : (
-        <div className="mt-6 grid gap-5 md:grid-cols-2">
-          {events.map((e) => <ScheduleCard key={e.id} event={e} />)}
+        <div className="grid gap-5 md:grid-cols-2">
+          {events.map((e) => (
+            <ScheduleCard key={e.id} event={e} />
+          ))}
         </div>
       )}
     </div>
-  );
+  )
 }

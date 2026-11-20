@@ -2,147 +2,129 @@ import { useState } from 'react'
 import { approveApplication, getApplications, rejectApplication } from '../../api/admin'
 import useApi from '../../hooks/useApi'
 import LoadState from '../../components/common/LoadState'
-import StatusBadge from '../../components/common/StatusBadge'
-import ConfirmModal from '../../components/admin/ConfirmModal'
+import PageHeader from '../../components/ui/PageHeader'
+import FilterPills from '../../components/ui/FilterPills'
+import Table, { Td } from '../../components/ui/Table'
+import Button from '../../components/ui/Button'
+import Badge, { StatusBadge } from '../../components/ui/Badge'
+import Notice from '../../components/ui/Notice'
+import { ConfirmDialog } from '../../components/ui/Modal'
+import { inputClass } from '../../components/ui/form'
+import { formatShortDate } from '../../utils/format'
 
-const tabs = ['pending', 'approved', 'rejected', 'all']
+const TABS = ['pending', 'approved', 'rejected', 'all']
 
+// Admin: review, approve, or reject vendor applications (SRS 3.1.2.1).
 export default function Applications() {
   const { data, loading, error, reload, setData: setApplications } = useApi(() => getApplications(), [])
   const applications = data ?? []
-  const [actionError, setActionError] = useState('')
   const [filter, setFilter] = useState('pending')
-  const [selected, setSelected] = useState(null) // { app, action }
+  const [selected, setSelected] = useState(null) // { app, action: 'approve' | 'reject' }
   const [reason, setReason] = useState('')
+  const [message, setMessage] = useState({ tone: 'success', text: '' })
 
-  const visible =
-    filter === 'all' ? applications : applications.filter((a) => a.status === filter)
+  const countFor = (tab) => (tab === 'all' ? applications.length : applications.filter((a) => a.status === tab).length)
+  const visible = filter === 'all' ? applications : applications.filter((a) => a.status === filter)
+  const isApprove = selected?.action === 'approve'
 
-  const countFor = (tab) =>
-    tab === 'all' ? applications.length : applications.filter((a) => a.status === tab).length
-
-  const closeModal = () => {
+  const closeDialog = () => {
     setSelected(null)
     setReason('')
   }
 
   const confirmAction = async () => {
-    setActionError('')
+    const { app, action } = selected
+    closeDialog()
     try {
       const updated =
-        selected.action === 'approve'
-          ? await approveApplication(selected.app.application_id)
-          : await rejectApplication(selected.app.application_id, reason)
+        action === 'approve'
+          ? await approveApplication(app.application_id)
+          : await rejectApplication(app.application_id, reason)
       setApplications((prev) => prev.map((a) => (a.application_id === updated.application_id ? updated : a)))
+      setMessage({
+        tone: 'success',
+        text: `${app.business_name} was ${action === 'approve' ? 'approved and can now set up their shop' : 'rejected'}. They have been notified.`,
+      })
     } catch (err) {
-      setActionError(err.message)
+      setMessage({ tone: 'error', text: err.message })
     }
-    closeModal()
   }
-
-  const isApprove = selected?.action === 'approve'
 
   return (
     <div>
-      <h2 className="mb-6 text-2xl font-bold">Vendor Applications</h2>
-      {actionError && <p className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{actionError}</p>}
-      {(loading || error) && <LoadState loading={loading} error={error} onRetry={reload} />}
+      <PageHeader
+        title="Vendor applications"
+        description="Approve vendors before they can list products or join bazaars."
+      />
+      <Notice tone={message.tone} onClose={() => setMessage({ ...message, text: '' })}>
+        {message.text}
+      </Notice>
 
-      {/* Filter tabs */}
-      <div className="mb-4 flex flex-wrap gap-2">
-        {tabs.map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setFilter(tab)}
-            className={`rounded-full px-4 py-1.5 text-sm capitalize ${
-              filter === tab
-                ? 'bg-blue-600 text-white'
-                : 'bg-white text-slate-700 shadow hover:bg-slate-100'
-            }`}
-          >
-            {tab} ({countFor(tab)})
-          </button>
-        ))}
-      </div>
+      <FilterPills
+        className="mb-4"
+        label="Application status"
+        value={filter}
+        onChange={setFilter}
+        options={TABS.map((t) => ({ value: t, label: `${t[0].toUpperCase()}${t.slice(1)} (${countFor(t)})` }))}
+      />
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg bg-white shadow">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-4 py-3">Business</th>
-              <th className="px-4 py-3">Applicant</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Submitted</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+      {loading || error ? (
+        <LoadState loading={loading} error={error} onRetry={reload} />
+      ) : (
+        <Table
+          columns={['Business', 'Applicant', 'Category', 'Submitted', 'Status', { label: 'Actions', align: 'right' }]}
+          isEmpty={visible.length === 0}
+          empty={`No ${filter === 'all' ? '' : filter} applications.`}
+        >
+          {visible.map((app) => (
+            <tr key={app.application_id}>
+              <Td>
+                <p className="font-semibold text-ink">{app.business_name}</p>
+                <p className="max-w-xs text-xs text-muted">{app.business_details}</p>
+                {app.ai_flag && (
+                  <Badge tone="warning" className="mt-1">
+                    <span title={app.ai_flag_reason || 'Flagged by AI as incomplete'}>⚠ AI flagged</span>
+                  </Badge>
+                )}
+                {app.status === 'rejected' && app.rejection_reason && (
+                  <p className="mt-1 text-xs text-danger">Reason: {app.rejection_reason}</p>
+                )}
+              </Td>
+              <Td>
+                <p className="text-ink">{app.applicant_name}</p>
+                <p className="text-xs text-muted">{app.email}</p>
+              </Td>
+              <Td>{app.product_category}</Td>
+              <Td className="whitespace-nowrap">{formatShortDate(app.submitted_at)}</Td>
+              <Td>
+                <StatusBadge status={app.status} />
+              </Td>
+              <Td align="right">
+                {app.status === 'pending' ? (
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="success" onClick={() => setSelected({ app, action: 'approve' })}>
+                      Approve
+                    </Button>
+                    <Button size="sm" variant="secondary" onClick={() => setSelected({ app, action: 'reject' })}>
+                      Reject
+                    </Button>
+                  </div>
+                ) : (
+                  <span className="text-muted">—</span>
+                )}
+              </Td>
             </tr>
-          </thead>
-          <tbody>
-            {visible.length === 0 && (
-              <tr>
-                <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
-                  No {filter === 'all' ? '' : filter} applications.
-                </td>
-              </tr>
-            )}
-            {visible.map((app) => (
-              <tr key={app.application_id} className="border-b last:border-0 align-top">
-                <td className="px-4 py-3">
-                  <p className="font-medium">{app.business_name}</p>
-                  <p className="max-w-xs text-xs text-slate-500">{app.business_details}</p>
-                  {app.ai_flag && (
-                    <span
-                      title={app.ai_flag_reason || 'Flagged by AI as incomplete or inconsistent'}
-                      className="mt-1 inline-block rounded bg-amber-100 px-2 py-0.5 text-xs text-amber-800"
-                    >
-                      ⚠ AI flagged
-                    </span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  <p>{app.applicant_name}</p>
-                  <p className="text-xs text-slate-500">{app.email}</p>
-                </td>
-                <td className="px-4 py-3">{app.product_category}</td>
-                <td className="px-4 py-3">{app.submitted_at}</td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={app.status} />
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {app.status === 'pending' ? (
-                    <div className="flex justify-end gap-2">
-                      <button
-                        onClick={() => setSelected({ app, action: 'approve' })}
-                        className="rounded bg-green-600 px-3 py-1 text-white hover:bg-green-700"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => setSelected({ app, action: 'reject' })}
-                        className="rounded bg-red-600 px-3 py-1 text-white hover:bg-red-700"
-                      >
-                        Reject
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-slate-400">—</span>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </Table>
+      )}
 
-      {/* Confirm modal */}
-      <ConfirmModal
+      <ConfirmDialog
         open={!!selected}
         title={isApprove ? 'Approve application?' : 'Reject application?'}
         confirmLabel={isApprove ? 'Approve' : 'Reject'}
-        confirmClass={isApprove ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+        tone={isApprove ? 'success' : 'danger'}
         onConfirm={confirmAction}
-        onCancel={closeModal}
+        onCancel={closeDialog}
       >
         <p>
           {isApprove
@@ -153,12 +135,13 @@ export default function Applications() {
           <textarea
             value={reason}
             onChange={(e) => setReason(e.target.value)}
-            placeholder="Reason for rejection (optional)"
-            className="mt-3 w-full rounded border border-slate-300 p-2 text-sm"
+            placeholder="Reason for rejection (shown to the vendor)"
+            aria-label="Reason for rejection"
+            className={`${inputClass} mt-3`}
             rows={3}
           />
         )}
-      </ConfirmModal>
+      </ConfirmDialog>
     </div>
   )
 }

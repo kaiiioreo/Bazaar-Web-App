@@ -1,69 +1,81 @@
 import { useState } from 'react'
 import Logo from './Logo'
+import Card from '../ui/Card'
+import Button from '../ui/Button'
+import { inputClass, labelClass } from '../ui/form'
 import { readImage } from './imageUtils'
-import { CATEGORIES } from './vendorHelpers'
+import { CATEGORIES } from '../../utils/constants'
 
-const field = 'mt-1 w-full rounded-md border border-stone-300 px-3 py-2 text-sm focus:border-teal-600 focus:outline-none focus:ring-1 focus:ring-teal-600'
-
-// UpdateVendorProfile()
+// UpdateVendorProfile(): the vendor's public shop details.
 export default function ProfilePanel({ profile, onSave }) {
   const [form, setForm] = useState(profile)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
+  const [status, setStatus] = useState({ tone: '', text: '' })
   const [busy, setBusy] = useState(false)
+
+  const set = (k) => (e) => {
+    setForm({ ...form, [k]: e.target.value })
+    setStatus({ tone: '', text: '' })
+  }
+  const onLogo = async (e) => {
+    const file = e.target.files[0]
+    if (file) setForm({ ...form, profile_image: await readImage(file, 256) })
+  }
   const submit = async (e) => {
     e.preventDefault()
     setBusy(true)
-    setError('')
     try {
       await onSave(form)
-      setSaved(true)
+      setStatus({ tone: 'ok', text: 'Profile saved' })
     } catch (err) {
-      setError(err.message)
+      setStatus({ tone: 'error', text: err.message })
     } finally {
       setBusy(false)
     }
   }
-  const set = (k) => (e) => { setForm({ ...form, [k]: e.target.value }); setSaved(false) }
-  const onLogo = async (e) => {
-    const file = e.target.files[0]
-    if (file) { setForm({ ...form, profile_image: await readImage(file, 256) }); setSaved(false) }
-  }
 
   return (
-    <form
-      onSubmit={submit}
-      className="max-w-lg space-y-4 rounded-lg border border-stone-200 bg-white p-6"
-    >
+    <Card as="form" onSubmit={submit} className="max-w-xl space-y-4 p-6">
       <div className="flex items-center gap-4">
         <Logo profile={form} size="h-16 w-16" text="text-2xl" />
         <div className="text-sm">
-          <label>Store logo
-            <input type="file" accept="image/*" onChange={onLogo} className="mt-1 block text-xs" />
+          <label className={labelClass}>
+            Store logo
+            <input type="file" accept="image/*" onChange={onLogo} className="mt-1 block text-xs text-muted" />
           </label>
           {form.profile_image && (
-            <button type="button" onClick={() => { setForm({ ...form, profile_image: '' }); setSaved(false) }} className="mt-1 text-xs text-red-700 hover:underline">
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, profile_image: '' })}
+              className="mt-1 text-xs text-danger hover:underline"
+            >
               Remove logo
             </button>
           )}
         </div>
       </div>
-      <label className="block text-sm">Business name
-        <input required value={form.business_name} onChange={set('business_name')} className={field} />
+      <label className={labelClass}>
+        Business name
+        <input required value={form.business_name} onChange={set('business_name')} className={inputClass} />
       </label>
-      <label className="block text-sm">Category
-        <select value={form.category} onChange={set('category')} className={field}>
-          {CATEGORIES.map((c) => <option key={c}>{c}</option>)}
+      <label className={labelClass}>
+        Category
+        <select value={form.category} onChange={set('category')} className={inputClass}>
+          {CATEGORIES.map((c) => (
+            <option key={c}>{c}</option>
+          ))}
         </select>
       </label>
-      <label className="block text-sm">Description
-        <textarea rows={4} value={form.description} onChange={set('description')} className={field} />
+      <label className={labelClass}>
+        Description
+        <textarea rows={4} value={form.description} onChange={set('description')} className={inputClass} />
       </label>
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm">Contact email
-          <input type="email" value={form.contact_info} onChange={set('contact_info')} className={field} />
+        <label className={labelClass}>
+          Contact email
+          <input type="email" value={form.contact_info} onChange={set('contact_info')} className={inputClass} />
         </label>
-        <label className="block text-sm">Contact number
+        <label className={labelClass}>
+          Contact number
           <input
             type="tel"
             inputMode="tel"
@@ -72,15 +84,23 @@ export default function ProfilePanel({ profile, onSave }) {
             placeholder="0917 123 4567"
             pattern="[0-9+\s()\-]{7,20}"
             title="Use numbers only, for example 0917 123 4567 or +63 917 123 4567"
-            className={field}
+            className={inputClass}
           />
         </label>
       </div>
       <div className="flex items-center gap-3">
-        <button type="submit" disabled={busy} className="rounded-md bg-stone-900 px-4 py-2 text-sm text-white hover:bg-stone-700 disabled:opacity-60">{busy ? 'Saving…' : 'Save changes'}</button>
-        {saved && <span className="text-sm text-green-700" role="status">Profile saved</span>}
-        {error && <span className="text-sm text-red-700" role="alert">{error}</span>}
+        <Button type="submit" disabled={busy}>
+          {busy ? 'Saving…' : 'Save changes'}
+        </Button>
+        {status.text && (
+          <span
+            className={`text-sm ${status.tone === 'ok' ? 'text-success' : 'text-danger'}`}
+            role={status.tone === 'ok' ? 'status' : 'alert'}
+          >
+            {status.text}
+          </span>
+        )}
       </div>
-    </form>
+    </Card>
   )
 }

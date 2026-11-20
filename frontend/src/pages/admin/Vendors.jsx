@@ -1,185 +1,189 @@
 import { useState } from 'react'
-import { getVendors, setUserStatus } from '../../api/admin'
+import { getVendors, setUserStatus, updateVendor } from '../../api/admin'
 import useApi from '../../hooks/useApi'
 import LoadState from '../../components/common/LoadState'
-import StatusBadge from '../../components/common/StatusBadge'
-import ConfirmModal from '../../components/admin/ConfirmModal'
+import PageHeader from '../../components/ui/PageHeader'
+import FilterPills from '../../components/ui/FilterPills'
+import SearchInput from '../../components/ui/SearchInput'
+import Table, { Td } from '../../components/ui/Table'
+import Button from '../../components/ui/Button'
+import { StatusBadge, StockBadge } from '../../components/ui/Badge'
+import Notice from '../../components/ui/Notice'
+import Modal, { ConfirmDialog } from '../../components/ui/Modal'
+import { inputClass, labelClass } from '../../components/ui/form'
+import { CATEGORIES } from '../../utils/constants'
+import { formatShortDate, peso } from '../../utils/format'
 
-const stockLabels = {
-  in_stock: 'In Stock',
-  low_stock: 'Low Stock',
-  out_of_stock: 'Out of Stock',
-}
+const STATUS_FILTERS = ['all', 'active', 'suspended']
 
+// Admin: view, edit, and suspend vendors (SRS 3.1.2.2).
 export default function Vendors() {
   const { data, loading, error, reload, setData: setVendors } = useApi(() => getVendors(), [])
   const vendors = data ?? []
-  const [actionError, setActionError] = useState('')
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('all')
   const [viewingId, setViewingId] = useState(null)
+  const [editing, setEditing] = useState(null) // a copy of the vendor being edited
   const [toToggle, setToToggle] = useState(null)
+  const [message, setMessage] = useState({ tone: 'success', text: '' })
 
-  const viewingVendor = vendors.find((v) => v.vendor_id === viewingId)
-
-  const visible = vendors.filter((v) => {
-    const matchesSearch = v.business_name.toLowerCase().includes(search.toLowerCase())
-    const matchesStatus = statusFilter === 'all' || v.status === statusFilter
-    return matchesSearch && matchesStatus
-  })
+  const viewing = vendors.find((v) => v.vendor_id === viewingId)
+  const q = search.trim().toLowerCase()
+  const visible = vendors.filter(
+    (v) => (statusFilter === 'all' || v.status === statusFilter) && v.business_name.toLowerCase().includes(q),
+  )
+  const suspending = toToggle?.status === 'active'
+  const replace = (updated) => setVendors((prev) => prev.map((v) => (v.vendor_id === updated.vendor_id ? updated : v)))
 
   // SuspendVendor(): suspending the vendor's account hides them from customers.
   const confirmToggle = async () => {
     const target = toToggle
     setToToggle(null)
-    setActionError('')
     try {
-      const updated = await setUserStatus(target.vendor_id, target.status === 'active' ? 'suspended' : 'active')
-      setVendors((prev) => prev.map((v) => (v.vendor_id === target.vendor_id ? { ...v, status: updated.status } : v)))
+      const updated = await setUserStatus(target.vendor_id, suspending ? 'suspended' : 'active')
+      replace({ ...target, status: updated.status })
+      setMessage({ tone: 'success', text: `${target.business_name} was ${suspending ? 'suspended' : 'reactivated'}.` })
     } catch (err) {
-      setActionError(err.message)
+      setMessage({ tone: 'error', text: err.message })
     }
   }
 
-  const suspending = toToggle?.status === 'active'
+  // EditVendor()
+  const saveEdit = async (e) => {
+    e.preventDefault()
+    const { vendor_id, business_name, category, description } = editing
+    try {
+      replace(await updateVendor(vendor_id, { business_name, category, description }))
+      setEditing(null)
+      setMessage({ tone: 'success', text: `${business_name} was updated.` })
+    } catch (err) {
+      setMessage({ tone: 'error', text: err.message })
+    }
+  }
 
   return (
     <div>
-      <h2 className="mb-6 text-2xl font-bold">Vendor Management</h2>
-      {actionError && <p className="mb-4 rounded border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{actionError}</p>}
-      {(loading || error) && <LoadState loading={loading} error={error} onRetry={reload} />}
+      <PageHeader
+        title="Vendor management"
+        description="Approved vendors, their listings, and where they are scheduled."
+      />
+      <Notice tone={message.tone} onClose={() => setMessage({ ...message, text: '' })}>
+        {message.text}
+      </Notice>
 
-      {/* Search + filter */}
-      <div className="mb-4 flex flex-wrap gap-3">
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search by business name..."
-          className="w-full max-w-xs rounded border border-slate-300 bg-white px-3 py-2 text-sm"
-        />
-        <select
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        <FilterPills
+          label="Vendor status"
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="rounded border border-slate-300 bg-white px-3 py-2 text-sm"
-        >
-          <option value="all">All statuses</option>
-          <option value="active">Active</option>
-          <option value="suspended">Suspended</option>
-        </select>
+          onChange={setStatusFilter}
+          options={STATUS_FILTERS.map((s) => ({
+            value: s,
+            label: s === 'all' ? 'All' : `${s[0].toUpperCase()}${s.slice(1)}`,
+          }))}
+        />
+        <SearchInput value={search} onChange={setSearch} placeholder="Search by business name…" />
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto rounded-lg bg-white shadow">
-        <table className="w-full text-left text-sm">
-          <thead className="border-b bg-slate-50 text-slate-600">
-            <tr>
-              <th className="px-4 py-3">Business</th>
-              <th className="px-4 py-3">Owner</th>
-              <th className="px-4 py-3">Category</th>
-              <th className="px-4 py-3">Status</th>
-              <th className="px-4 py-3 text-right">Actions</th>
+      {loading || error ? (
+        <LoadState loading={loading} error={error} onRetry={reload} />
+      ) : (
+        <Table
+          columns={['Business', 'Owner', 'Category', 'Products', 'Status', { label: 'Actions', align: 'right' }]}
+          isEmpty={visible.length === 0}
+          empty="No vendors match your search."
+        >
+          {visible.map((v) => (
+            <tr key={v.vendor_id}>
+              <Td className="font-semibold text-ink">{v.business_name}</Td>
+              <Td>
+                <p className="text-ink">{v.owner_name}</p>
+                <p className="text-xs text-muted">{v.email}</p>
+              </Td>
+              <Td>{v.category}</Td>
+              <Td>{v.products.length}</Td>
+              <Td>
+                <StatusBadge status={v.status} />
+              </Td>
+              <Td align="right">
+                <div className="flex justify-end gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => setViewingId(v.vendor_id)}>
+                    View
+                  </Button>
+                  <Button size="sm" variant="secondary" onClick={() => setEditing({ ...v })}>
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant={v.status === 'active' ? 'danger' : 'success'}
+                    onClick={() => setToToggle(v)}
+                  >
+                    {v.status === 'active' ? 'Suspend' : 'Reactivate'}
+                  </Button>
+                </div>
+              </Td>
             </tr>
-          </thead>
-          <tbody>
-            {visible.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
-                  No vendors match your search.
-                </td>
-              </tr>
-            )}
-            {visible.map((v) => (
-              <tr key={v.vendor_id} className="border-b last:border-0">
-                <td className="px-4 py-3 font-medium">{v.business_name}</td>
-                <td className="px-4 py-3">
-                  <p>{v.owner_name}</p>
-                  <p className="text-xs text-slate-500">{v.email}</p>
-                </td>
-                <td className="px-4 py-3">{v.category}</td>
-                <td className="px-4 py-3">
-                  <StatusBadge status={v.status} />
-                </td>
-                <td className="px-4 py-3 text-right">
-                  <div className="flex justify-end gap-2">
-                    <button
-                      onClick={() => setViewingId(v.vendor_id)}
-                      className="rounded border border-slate-300 px-3 py-1 hover:bg-slate-50"
-                    >
-                      View
-                    </button>
-                    <button
-                      onClick={() => setToToggle(v)}
-                      className={`rounded px-3 py-1 text-white ${
-                        v.status === 'active'
-                          ? 'bg-red-600 hover:bg-red-700'
-                          : 'bg-green-600 hover:bg-green-700'
-                      }`}
-                    >
-                      {v.status === 'active' ? 'Suspend' : 'Reactivate'}
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+          ))}
+        </Table>
+      )}
 
-      {/* Details drawer */}
-      {viewingVendor && (
-        <div
-          className="fixed inset-0 z-40 flex justify-end bg-black/40"
-          onClick={() => setViewingId(null)}
-        >
+      {/* Details drawer (ViewVendor) */}
+      {viewing && (
+        <div className="fixed inset-0 z-40 flex justify-end bg-black/30" onClick={() => setViewingId(null)}>
           <aside
+            role="dialog"
+            aria-modal="true"
+            aria-label={viewing.business_name}
             className="h-full w-full max-w-md overflow-y-auto bg-white p-6 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="mb-4 flex items-start justify-between">
+            <div className="mb-4 flex items-start justify-between gap-4">
               <div>
-                <h3 className="text-xl font-bold">{viewingVendor.business_name}</h3>
-                <p className="text-sm text-slate-500">
-                  {viewingVendor.owner_name} · {viewingVendor.email}
+                <h2 className="font-serif text-2xl text-brand">{viewing.business_name}</h2>
+                <p className="text-sm text-muted">
+                  {viewing.owner_name} · {viewing.email}
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setViewingId(null)}
-                className="text-2xl leading-none text-slate-400 hover:text-slate-700"
+                className="text-2xl leading-none text-muted hover:text-ink"
                 aria-label="Close"
               >
                 ×
               </button>
             </div>
+            <StatusBadge status={viewing.status} />
+            <p className="mt-4 text-sm text-ink">{viewing.description}</p>
 
-            <StatusBadge status={viewingVendor.status} />
-            <p className="mt-4 text-sm text-slate-700">{viewingVendor.description}</p>
-
-            <h4 className="mb-2 mt-6 font-semibold">Products</h4>
-            {viewingVendor.products.length === 0 ? (
-              <p className="text-sm text-slate-500">No products listed.</p>
+            <h3 className="mb-2 mt-6 font-semibold text-ink">Products</h3>
+            {viewing.products.length === 0 ? (
+              <p className="text-sm text-muted">No products listed.</p>
             ) : (
               <ul className="space-y-2 text-sm">
-                {viewingVendor.products.map((p) => (
-                  <li key={p.product_id} className="flex justify-between rounded bg-slate-50 px-3 py-2">
-                    <span>{p.name}</span>
-                    <span className="text-slate-600">
-                      ₱{p.price} · {stockLabels[p.stock_status]}
+                {viewing.products.map((p) => (
+                  <li
+                    key={p.product_id}
+                    className="flex items-center justify-between gap-3 rounded-lg bg-cream px-3 py-2"
+                  >
+                    <span className="text-ink">{p.name}</span>
+                    <span className="flex items-center gap-2 text-muted">
+                      {peso(p.price)} <StockBadge stock={p.stock_status} />
                     </span>
                   </li>
                 ))}
               </ul>
             )}
 
-            <h4 className="mb-2 mt-6 font-semibold">Schedule</h4>
-            {viewingVendor.schedule.length === 0 ? (
-              <p className="text-sm text-slate-500">Not registered for any bazaar yet.</p>
+            <h3 className="mb-2 mt-6 font-semibold text-ink">Schedule</h3>
+            {viewing.schedule.length === 0 ? (
+              <p className="text-sm text-muted">Not registered for any bazaar yet.</p>
             ) : (
               <ul className="space-y-2 text-sm">
-                {viewingVendor.schedule.map((s) => (
-                  <li key={s.event + s.date} className="rounded bg-slate-50 px-3 py-2">
-                    <p className="font-medium">{s.event}</p>
-                    <p className="text-slate-600">
-                      {s.date} · {s.slot ? `Stall ${s.slot}` : 'Waiting for stall'}
+                {viewing.schedule.map((s) => (
+                  <li key={s.event_id} className="rounded-lg bg-cream px-3 py-2">
+                    <p className="font-medium text-ink">{s.event}</p>
+                    <p className="text-muted">
+                      {formatShortDate(s.date)} · {s.slot ? `Stall ${s.slot}` : 'Waiting for stall'}
                     </p>
                   </li>
                 ))}
@@ -189,21 +193,63 @@ export default function Vendors() {
         </div>
       )}
 
-      {/* Suspend / reactivate confirmation */}
-      <ConfirmModal
+      {editing && (
+        <Modal title={`Edit ${editing.business_name}`} onClose={() => setEditing(null)} size="lg">
+          <form onSubmit={saveEdit} className="space-y-4">
+            <label className={labelClass}>
+              Business name
+              <input
+                required
+                value={editing.business_name}
+                onChange={(e) => setEditing({ ...editing, business_name: e.target.value })}
+                className={inputClass}
+              />
+            </label>
+            <label className={labelClass}>
+              Category
+              <select
+                value={editing.category}
+                onChange={(e) => setEditing({ ...editing, category: e.target.value })}
+                className={inputClass}
+              >
+                {CATEGORIES.map((c) => (
+                  <option key={c}>{c}</option>
+                ))}
+              </select>
+            </label>
+            <label className={labelClass}>
+              Description
+              <textarea
+                rows={4}
+                value={editing.description}
+                onChange={(e) => setEditing({ ...editing, description: e.target.value })}
+                className={inputClass}
+              />
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="secondary" onClick={() => setEditing(null)}>
+                Cancel
+              </Button>
+              <Button type="submit">Save changes</Button>
+            </div>
+          </form>
+        </Modal>
+      )}
+
+      <ConfirmDialog
         open={!!toToggle}
         title={suspending ? 'Suspend vendor?' : 'Reactivate vendor?'}
         confirmLabel={suspending ? 'Suspend' : 'Reactivate'}
-        confirmClass={suspending ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'}
+        tone={suspending ? 'danger' : 'success'}
         onConfirm={confirmToggle}
         onCancel={() => setToToggle(null)}
       >
         <p>
           {suspending
-            ? `${toToggle?.business_name} will be hidden from customers and unable to manage listings until reactivated.`
+            ? `${toToggle?.business_name} will be hidden from customers and unable to log in until reactivated.`
             : `${toToggle?.business_name} will be visible to customers again.`}
         </p>
-      </ConfirmModal>
+      </ConfirmDialog>
     </div>
   )
 }

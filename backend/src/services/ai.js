@@ -39,7 +39,13 @@ async function callGemini({ system, messages, maxTokens }) {
   })
   const data = await readJSON(res)
   const parts = data.candidates?.[0]?.content?.parts ?? []
-  return parts.filter((p) => !p.thought).map((p) => p.text || '').join('').trim() || null
+  return (
+    parts
+      .filter((p) => !p.thought)
+      .map((p) => p.text || '')
+      .join('')
+      .trim() || null
+  )
 }
 
 async function callOpenAI({ system, messages, maxTokens }) {
@@ -65,7 +71,12 @@ async function callAnthropic({ system, messages, maxTokens }) {
     signal: AbortSignal.timeout(20000),
   })
   const data = await readJSON(res)
-  return data.content?.map((c) => c.text || '').join('').trim() || null
+  return (
+    data.content
+      ?.map((c) => c.text || '')
+      .join('')
+      .trim() || null
+  )
 }
 
 // messages: [{ role: 'user' | 'assistant', content: string }]
@@ -117,17 +128,19 @@ function cleanHistory(messages = []) {
 
 /* ---------- Natural-language search (SearchProductsNaturalLanguage) ---------- */
 
-const STOP = new Set(('a an the for of to and or with under below over above less than something some any me i ' +
-  'want looking find sell selling sells that is are in on at my show best good who where can buy get need ' +
-  'please php pesos peso p gift present cheap affordable stuff thing things item items').split(' '))
+const STOP = new Set(
+  (
+    'a an the for of to and or with under below over above less than something some any me i ' +
+    'want looking find sell selling sells that is are in on at my show best good who where can buy get need ' +
+    'please php pesos peso p gift present cheap affordable stuff thing things item items'
+  ).split(' '),
+)
 
 function fallbackSearchFilters(query, categories) {
   const lower = query.toLowerCase()
   const priceMatch = lower.match(/(?:under|below|less than|max|<)\s*(?:php|₱|p)?\s*(\d+)/)
   const category = categories.find((c) => lower.includes(c.toLowerCase())) || null
-  const keywords = lower
-    .split(/[^a-z0-9ñ]+/)
-    .filter((t) => t.length > 1 && !STOP.has(t) && !/^\d+$/.test(t))
+  const keywords = lower.split(/[^a-z0-9ñ]+/).filter((t) => t.length > 1 && !STOP.has(t) && !/^\d+$/.test(t))
   const sweet = /sweet|dessert|pasalubong|snack/.test(lower)
   return {
     keywords: sweet && !keywords.length ? ['sweet'] : keywords,
@@ -151,7 +164,10 @@ export async function parseSearchQuery(query, categories) {
   const parsed = parseJSON(text)
   if (parsed && Array.isArray(parsed.keywords)) {
     return {
-      keywords: parsed.keywords.map((k) => String(k).toLowerCase()).filter(Boolean).slice(0, 10),
+      keywords: parsed.keywords
+        .map((k) => String(k).toLowerCase())
+        .filter(Boolean)
+        .slice(0, 10),
       category: categories.includes(parsed.category) ? parsed.category : null,
       max_price: Number(parsed.max_price) > 0 ? Number(parsed.max_price) : null,
       in_stock_only: Boolean(parsed.in_stock_only),
@@ -175,7 +191,10 @@ function fallbackChat(message, context) {
     return 'Saving favorites and writing reviews need a free customer account. Tap "Create account" to sign up.'
   }
   if (/vendor|stall|seller|sell/.test(text)) {
-    return `We have ${context.vendors.length} vendors, including ${context.vendors.slice(0, 3).map((v) => v.business_name).join(', ')}. Use the search bar to find products in your own words.`
+    return `We have ${context.vendors.length} vendors, including ${context.vendors
+      .slice(0, 3)
+      .map((v) => v.business_name)
+      .join(', ')}. Use the search bar to find products in your own words.`
   }
   return 'I can help you find products and vendors or check the bazaar schedule. Try asking "what is sold at the next bazaar?"'
 }
@@ -249,11 +268,18 @@ export async function generateListing({ notes, categories, vendorName }) {
   // Fallback: tidy up the vendor's own notes.
   const clean = notes.trim().replace(/\s+/g, ' ')
   const price = clean.match(/(?:₱|php|p)\s*(\d+)/i) || clean.match(/(\d+)\s*(?:pesos|php)/i)
-  const first = clean.split(/[,.;\n]/)[0].replace(/(?:₱|php)\s*\d+/i, '').trim()
+  const first = clean
+    .split(/[,.;\n]/)[0]
+    .replace(/(?:₱|php)\s*\d+/i, '')
+    .trim()
   const name = first.charAt(0).toUpperCase() + first.slice(1, 40)
   return {
     name: name || 'New product',
-    description: `${clean.charAt(0).toUpperCase()}${clean.slice(1)}${/[.!?]$/.test(clean) ? '' : '.'} Available at our stall this bazaar.`.slice(0, 300),
+    description:
+      `${clean.charAt(0).toUpperCase()}${clean.slice(1)}${/[.!?]$/.test(clean) ? '' : '.'} Available at our stall this bazaar.`.slice(
+        0,
+        300,
+      ),
     category: categories.find((c) => clean.toLowerCase().includes(c.toLowerCase())) || categories[0],
     price: price ? Number(price[1]) : null,
     used_ai: false,
@@ -264,7 +290,10 @@ export async function generateListing({ notes, categories, vendorName }) {
 
 export async function summarizeReviews(reviews, subject = 'this vendor') {
   if (!reviews.length) return ''
-  const sample = reviews.slice(0, 40).map((r) => `${r.rating}/5: ${r.comment}`).join('\n')
+  const sample = reviews
+    .slice(0, 40)
+    .map((r) => `${r.rating}/5: ${r.comment}`)
+    .join('\n')
   const text = await callLLM({
     system:
       `Summarize customer sentiment about ${subject} in 2 short sentences: what customers praise, then any common complaint. ` +
@@ -276,8 +305,10 @@ export async function summarizeReviews(reviews, subject = 'this vendor') {
   const avg = reviews.reduce((s, r) => s + r.rating, 0) / reviews.length
   const tone = avg >= 4.2 ? 'very positive' : avg >= 3.5 ? 'mostly positive' : avg >= 2.5 ? 'mixed' : 'mostly negative'
   const low = reviews.find((r) => r.rating <= 3)
-  return `Feedback from ${reviews.length} review${reviews.length === 1 ? '' : 's'} is ${tone} (average ${avg.toFixed(1)} of 5).` +
+  return (
+    `Feedback from ${reviews.length} review${reviews.length === 1 ? '' : 's'} is ${tone} (average ${avg.toFixed(1)} of 5).` +
     (low ? ` One concern raised: "${low.comment.slice(0, 80)}${low.comment.length > 80 ? '…' : ''}"` : '')
+  )
 }
 
 /* ---------- Review fraud / abuse check (used by FlagSuspiciousReview) ---------- */

@@ -11,7 +11,8 @@
     "db:reset": "prisma db push --force-reset && prisma generate && node prisma/seed.js",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate",
-    "ai:check": "node scripts/check-ai.js"
+    "ai:check": "node scripts/check-ai.js",
+    "format": "prettier --write src prisma/seed.js scripts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.10.1",
@@ -25,6 +26,7 @@
     "pg": "^8.23.1"
   },
   "devDependencies": {
+    "prettier": "^3.10.1",
     "prisma": "^7.10.1"
   }
 }

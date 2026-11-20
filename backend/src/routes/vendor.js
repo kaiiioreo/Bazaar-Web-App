@@ -97,7 +97,10 @@ function readProduct(b, partial = false) {
     data.price = price
   }
   if (!partial || b.category !== undefined) data.category = CATEGORIES.includes(b.category) ? b.category : 'Other'
-  if (b.description !== undefined) data.description = String(b.description ?? '').trim().slice(0, 1000)
+  if (b.description !== undefined)
+    data.description = String(b.description ?? '')
+      .trim()
+      .slice(0, 1000)
   if (b.stock_status !== undefined) {
     if (!STOCK_VALUES.includes(b.stock_status)) throw new HttpError(400, 'Invalid stock status.')
     data.stock_status = b.stock_status
@@ -220,7 +223,12 @@ router.delete('/events/:id/preregister', async (req, res) => {
   if (!schedule) throw new HttpError(404, 'You are not registered for this bazaar.')
   await prisma.$transaction([
     ...(schedule.slot_id
-      ? [prisma.bazaarSlot.update({ where: { slot_id: schedule.slot_id }, data: { vendor_id: null, status: 'available' } })]
+      ? [
+          prisma.bazaarSlot.update({
+            where: { slot_id: schedule.slot_id },
+            data: { vendor_id: null, status: 'available' },
+          }),
+        ]
       : []),
     prisma.vendorSchedule.delete({ where: { schedule_id: schedule.schedule_id } }),
   ])

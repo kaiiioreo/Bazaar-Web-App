@@ -1,7 +1,12 @@
 import { useState } from 'react'
+import Modal from '../ui/Modal'
+import Button from '../ui/Button'
+import { inputClass, labelClass } from '../ui/form'
 
 const today = new Date().toISOString().slice(0, 10)
 
+// Create or edit a bazaar event (CreateBazaarEvent / EditBazaarEvent).
+// onSave receives { name, date, location, total_slots }.
 export default function EventFormModal({ mode, initial, onSave, onClose }) {
   const [form, setForm] = useState({
     name: initial?.name ?? '',
@@ -10,7 +15,6 @@ export default function EventFormModal({ mode, initial, onSave, onClose }) {
     total_slots: initial?.total_slots ?? 10,
   })
   const [errors, setErrors] = useState({})
-
   const update = (field) => (e) => setForm((f) => ({ ...f, [field]: e.target.value }))
 
   const validate = () => {
@@ -24,7 +28,8 @@ export default function EventFormModal({ mode, initial, onSave, onClose }) {
     return e
   }
 
-  const handleSubmit = () => {
+  const handleSubmit = (event) => {
+    event.preventDefault()
     const e = validate()
     setErrors(e)
     if (Object.keys(e).length > 0) return
@@ -36,62 +41,49 @@ export default function EventFormModal({ mode, initial, onSave, onClose }) {
     })
   }
 
-  const inputClass = 'w-full rounded border border-slate-300 px-3 py-2 text-sm'
+  const error = (field) => errors[field] && <p className="mt-1 text-xs font-normal text-danger">{errors[field]}</p>
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
-        <h3 className="mb-4 text-lg font-semibold">
-          {mode === 'create' ? 'Create bazaar event' : 'Edit bazaar event'}
-        </h3>
-
-        <div className="space-y-4 text-sm">
-          <div>
-            <label className="mb-1 block font-medium">Event name</label>
-            <input value={form.name} onChange={update('name')} className={inputClass} />
-            {errors.name && <p className="mt-1 text-red-600">{errors.name}</p>}
-          </div>
-
-          <div>
-            <label className="mb-1 block font-medium">Date</label>
-            <input type="date" value={form.date} onChange={update('date')} className={inputClass} />
-            {errors.date && <p className="mt-1 text-red-600">{errors.date}</p>}
-          </div>
-
-          <div>
-            <label className="mb-1 block font-medium">Location</label>
-            <input value={form.location} onChange={update('location')} className={inputClass} />
-            {errors.location && <p className="mt-1 text-red-600">{errors.location}</p>}
-          </div>
-
-          <div>
-            <label className="mb-1 block font-medium">Number of stalls</label>
-            <input
-              type="number"
-              min="1"
-              value={form.total_slots}
-              onChange={update('total_slots')}
-              className={inputClass}
-            />
-            {errors.total_slots && <p className="mt-1 text-red-600">{errors.total_slots}</p>}
-          </div>
-        </div>
-
-        <div className="mt-6 flex justify-end gap-2">
-          <button
-            onClick={onClose}
-            className="rounded border border-slate-300 px-4 py-2 text-sm hover:bg-slate-50"
-          >
+    <Modal title={mode === 'create' ? 'Create bazaar event' : 'Edit bazaar event'} onClose={onClose}>
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        <label className={labelClass}>
+          Event name
+          <input value={form.name} onChange={update('name')} className={inputClass} />
+          {error('name')}
+        </label>
+        <label className={labelClass}>
+          Date
+          <input type="date" value={form.date} onChange={update('date')} className={inputClass} />
+          {error('date')}
+        </label>
+        <label className={labelClass}>
+          Location
+          <input
+            value={form.location}
+            onChange={update('location')}
+            placeholder="e.g. Plaza Independencia, Cebu City"
+            className={inputClass}
+          />
+          {error('location')}
+        </label>
+        <label className={labelClass}>
+          Number of stalls
+          <input
+            type="number"
+            min="1"
+            value={form.total_slots}
+            onChange={update('total_slots')}
+            className={inputClass}
+          />
+          {error('total_slots')}
+        </label>
+        <div className="flex justify-end gap-2 pt-2">
+          <Button variant="secondary" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            className="rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
-          >
-            {mode === 'create' ? 'Create event' : 'Save changes'}
-          </button>
+          </Button>
+          <Button type="submit">{mode === 'create' ? 'Create event' : 'Save changes'}</Button>
         </div>
-      </div>
-    </div>
+      </form>
+    </Modal>
   )
 }

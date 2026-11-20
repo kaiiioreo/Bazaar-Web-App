@@ -52,9 +52,7 @@ export function vendor(v, reviews) {
   if (list) {
     const visible = list.filter((r) => r.status === undefined || r.status === 'visible')
     out.review_count = visible.length
-    out.rating = visible.length
-      ? Math.round((visible.reduce((s, r) => s + r.rating, 0) / visible.length) * 10) / 10
-      : 0
+    out.rating = visible.length ? Math.round((visible.reduce((s, r) => s + r.rating, 0) / visible.length) * 10) / 10 : 0
   }
   return out
 }

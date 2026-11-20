@@ -13,7 +13,12 @@ export async function notifyMany(userIds, type, message, link = null) {
 
 export async function notifyAdmins(type, message, link = null) {
   const admins = await prisma.user.findMany({ where: { role: 'admin', status: 'active' }, select: { user_id: true } })
-  await notifyMany(admins.map((a) => a.user_id), type, message, link)
+  await notifyMany(
+    admins.map((a) => a.user_id),
+    type,
+    message,
+    link,
+  )
 }
 
 // Customers who favorited a vendor (SendScheduleNotification).

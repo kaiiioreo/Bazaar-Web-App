@@ -4,7 +4,8 @@ import api from './client'
 // The customer pages were built with camelCase mock data, so these helpers
 // convert the API's snake_case fields into that shape.
 
-const ACCENTS = ['#b45309', '#be123c', '#d97706', '#0f766e', '#44403c', '#15803d', '#7c3aed', '#0369a1']
+// Earthy stall-awning colours that sit well with the Bazaar palette.
+const ACCENTS = ['#293f32', '#b86f57', '#6b7a3a', '#c08a2b', '#8c5a46', '#7d9478', '#6e4b5e', '#3f6b6b']
 
 export const toVendor = (v) => ({
   id: v.vendor_id,

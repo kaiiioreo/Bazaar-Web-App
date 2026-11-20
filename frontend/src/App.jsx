@@ -2,6 +2,7 @@ import { Route, Routes, useLocation } from 'react-router-dom'
 import ChatbotWidget from './components/common/ChatbotWidget.jsx'
 import Navbar from './components/common/Navbar.jsx'
 import ProtectedRoute from './components/common/ProtectedRoute.jsx'
+import ScrollToTop from './components/common/ScrollToTop.jsx'
 import AuthPage from './pages/AuthPage.jsx'
 import HomePage from './pages/HomePage.jsx'
 import NotFoundPage from './pages/NotFoundPage.jsx'
@@ -25,12 +26,14 @@ import './App.css'
 
 export default function App() {
   const { pathname } = useLocation()
+  // Admin and Vendor dashboards have their own sidebars, so the public navbar is hidden there.
   // The chatbot is for guests and customers (SRS 3.1.6.2); vendors have their own assistant.
-  const showChatbot = !pathname.startsWith('/admin') && !pathname.startsWith('/vendor')
+  const isDashboard = pathname.startsWith('/admin') || pathname.startsWith('/vendor')
 
   return (
     <div className="app-shell">
-      <Navbar />
+      <ScrollToTop />
+      {!isDashboard && <Navbar />}
       <main>
         <Routes>
           {/* Public Routes */}
@@ -46,15 +49,51 @@ export default function App() {
             <Route path="search" element={<SearchResults />} />
             <Route path="vendors/:id" element={<VendorProfile />} />
             <Route path="schedule" element={<Schedule />} />
-            <Route path="favorites" element={<ProtectedRoute roles={['customer']}><Favorites /></ProtectedRoute>} />
-            <Route path="account" element={<ProtectedRoute roles={['customer']}><Account /></ProtectedRoute>} />
+            <Route
+              path="favorites"
+              element={
+                <ProtectedRoute roles={['customer']}>
+                  <Favorites />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="account"
+              element={
+                <ProtectedRoute roles={['customer']}>
+                  <Account />
+                </ProtectedRoute>
+              }
+            />
           </Route>
 
-          {/* Vendor Route */}
-          <Route path="/vendor" element={<ProtectedRoute roles={['vendor']}><VendorDashboard /></ProtectedRoute>} />
+          {/* Vendor Routes: /vendor/products, /vendor/schedule, /vendor/profile, /vendor/assistant */}
+          <Route
+            path="/vendor"
+            element={
+              <ProtectedRoute roles={['vendor']}>
+                <VendorDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/vendor/:tab"
+            element={
+              <ProtectedRoute roles={['vendor']}>
+                <VendorDashboard />
+              </ProtectedRoute>
+            }
+          />
 
           {/* Admin Routes */}
-          <Route path="/admin" element={<ProtectedRoute roles={['admin']}><AdminLayout /></ProtectedRoute>}>
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute roles={['admin']}>
+                <AdminLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<Dashboard />} />
             <Route path="applications" element={<Applications />} />
             <Route path="vendors" element={<Vendors />} />
@@ -68,7 +107,7 @@ export default function App() {
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </main>
-      {showChatbot && <ChatbotWidget />}
+      {!isDashboard && <ChatbotWidget />}
     </div>
   )
 }

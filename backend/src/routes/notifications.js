@@ -18,7 +18,10 @@ router.get('/', async (req, res) => {
 })
 
 router.post('/read-all', async (req, res) => {
-  await prisma.notification.updateMany({ where: { user_id: req.user.user_id, is_read: false }, data: { is_read: true } })
+  await prisma.notification.updateMany({
+    where: { user_id: req.user.user_id, is_read: false },
+    data: { is_read: true },
+  })
   res.status(204).end()
 })
 

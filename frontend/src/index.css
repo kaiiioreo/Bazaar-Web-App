@@ -1,5 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap');
-@import "tailwindcss";
+@import 'tailwindcss';
+
+/* Bazaar design tokens: one palette for every page (public, customer, vendor, admin).
+   Use them as Tailwind classes, e.g. bg-brand, text-ink, border-line, text-muted. */
+@theme {
+  --font-sans: 'DM Sans', 'Segoe UI', sans-serif;
+  --font-serif: 'DM Serif Display', Georgia, serif;
+
+  /* Text sizes: the two smallest steps are one notch larger than Tailwind's default for readability. */
+  --text-xs: 0.8125rem; /* 13px (default 12px) */
+  --text-xs--line-height: 1.25rem;
+  --text-sm: 0.9375rem; /* 15px (default 14px) */
+  --text-sm--line-height: 1.375rem;
+
+  --color-brand: #293f32; /* forest green: primary buttons, active links, headings */
+  --color-brand-hover: #1e3026;
+  --color-brand-soft: #e2e8d5; /* light green: active nav background, selected chips */
+  --color-accent: #b86f57; /* terracotta: highlights, counts, links on hover */
+  --color-accent-soft: #f6e7e1;
+  --color-paper: #fbfaf5; /* page background */
+  --color-cream: #f3f2ea; /* subtle panels, table headers */
+  --color-ink: #252c25; /* main text */
+  --color-muted: #6d7268; /* secondary text */
+  --color-line: #e8e7dd; /* borders */
+  --color-success: #2f6b45;
+  --color-success-soft: #e3efe6;
+  --color-warning: #8a5a12;
+  --color-warning-soft: #f8ecd4;
+  --color-danger: #a33a2b;
+  --color-danger-soft: #f8e4e0;
+}
 
 :root {
   font-family: 'DM Sans', 'Segoe UI', sans-serif;
@@ -31,6 +61,9 @@
 html {
   min-width: 320px;
   scroll-behavior: smooth;
+  /* Always reserve room for the scrollbar, so the page (and navbar) keeps the same width
+     on long pages like Home and short pages like Login. Without this, everything shifts sideways. */
+  scrollbar-gutter: stable;
 }
 
 body {
@@ -40,7 +73,9 @@ body {
 }
 
 button,
-input {
+input,
+select,
+textarea {
   font: inherit;
 }
 
@@ -51,7 +86,9 @@ a {
 
 a:focus-visible,
 button:focus-visible,
-input:focus-visible {
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
   outline: 2px solid #8a9b70;
   outline-offset: 3px;
 }

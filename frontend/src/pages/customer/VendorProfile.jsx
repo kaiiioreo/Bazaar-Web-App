@@ -1,106 +1,132 @@
-import { useState } from 'react';
-import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom';
-import Awning from '../../components/customer/Awning';
-import ProductCard from '../../components/customer/ProductCard';
-import ReviewCard from '../../components/customer/ReviewCard';
-import ReviewForm from '../../components/customer/ReviewForm';
-import formatDate from '../../components/customer/formatDate';
-import LoadState from '../../components/common/LoadState';
-import useApi from '../../hooks/useApi';
-import { getVendor } from '../../api/catalog';
-import { createReview, deleteReview, updateReview } from '../../api/customer';
-import { useAuth } from '../../context/AuthContext';
+import { useState } from 'react'
+import { Link, useLocation, useOutletContext, useParams } from 'react-router-dom'
+import Awning from '../../components/customer/Awning'
+import ProductCard from '../../components/customer/ProductCard'
+import ReviewCard from '../../components/customer/ReviewCard'
+import ReviewForm from '../../components/customer/ReviewForm'
+import LoadState from '../../components/common/LoadState'
+import Button from '../../components/ui/Button'
+import Card from '../../components/ui/Card'
+import EmptyState from '../../components/ui/EmptyState'
+import { ConfirmDialog } from '../../components/ui/Modal'
+import useApi from '../../hooks/useApi'
+import { getVendor } from '../../api/catalog'
+import { createReview, deleteReview, updateReview } from '../../api/customer'
+import { useAuth } from '../../context/AuthContext'
+import { formatLongDate, plural } from '../../utils/format'
 
+// A vendor's public shop page: products, upcoming bazaars, AI review summary, reviews (ViewVendorProfile).
 export default function VendorProfile() {
-  const { id } = useParams();
-  const location = useLocation();
-  const { user } = useAuth();
-  const { favorites, toggleFavorite } = useOutletContext();
-  const { data: vendor, loading, error, reload } = useApi(() => getVendor(id), [id]);
-  const [editing, setEditing] = useState(false);
+  const { id } = useParams()
+  const location = useLocation()
+  const { user } = useAuth()
+  const { favorites, toggleFavorite } = useOutletContext()
+  const { data: vendor, loading, error, reload } = useApi(() => getVendor(id), [id])
+  const [editing, setEditing] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
-  if (loading) return <LoadState loading />;
+  if (loading) return <LoadState loading />
   if (error || !vendor) {
     return (
       <div className="py-12">
-        <p className="text-lg font-semibold text-teal-950">Vendor not found</p>
-        <Link to="/customer" className="mt-2 inline-block text-teal-800 underline">Back to vendors</Link>
+        <EmptyState
+          action={
+            <Button to="/customer" variant="secondary">
+              Back to vendors
+            </Button>
+          }
+        >
+          Vendor not found.
+        </EmptyState>
       </div>
-    );
+    )
   }
 
-  const isCustomer = user?.role === 'customer';
-  const isFavorite = favorites.includes(vendor.id);
-  const myReview = isCustomer ? vendor.reviews.find((r) => r.customerId === user.user_id) : null;
-  const otherReviews = vendor.reviews.filter((r) => r !== myReview);
+  const isCustomer = user?.role === 'customer'
+  const isFavorite = favorites.includes(vendor.id)
+  const myReview = isCustomer ? vendor.reviews.find((r) => r.customerId === user.user_id) : null
+  const otherReviews = vendor.reviews.filter((r) => r !== myReview)
 
   const submitNew = async (rating, comment) => {
-    await createReview(vendor.id, rating, comment);
-    await reload();
-  };
+    await createReview(vendor.id, rating, comment)
+    await reload()
+  }
   const submitEdit = async (rating, comment) => {
-    await updateReview(myReview.id, rating, comment);
-    setEditing(false);
-    await reload();
-  };
+    await updateReview(myReview.id, rating, comment)
+    setEditing(false)
+    await reload()
+  }
   const removeMine = async () => {
-    if (!window.confirm('Delete your review?')) return;
-    await deleteReview(myReview.id);
-    await reload();
-  };
+    setConfirmDelete(false)
+    await deleteReview(myReview.id)
+    await reload()
+  }
 
   return (
     <div className="py-8">
-      <div className="overflow-hidden rounded-2xl border border-stone-200 bg-white">
+      <div className="overflow-hidden rounded-2xl border border-line bg-white">
         <Awning color={vendor.accent} className="h-6" />
         <div className="flex flex-wrap items-start justify-between gap-4 p-6">
           <div className="flex items-start gap-4">
             {vendor.image && <img src={vendor.image} alt="" className="h-16 w-16 rounded-full object-cover" />}
             <div>
-              <h1 className="text-3xl font-extrabold text-teal-950">{vendor.name}</h1>
-              <p className="mt-1 text-stone-500">{vendor.category}</p>
-              <p className="mt-3 max-w-xl text-stone-700">{vendor.description}</p>
-              <p className="mt-3 font-medium">
-                ★ {vendor.rating || '–'} <span className="font-normal text-stone-500">({vendor.reviewCount} reviews)</span>
+              <h1 className="font-serif text-4xl text-brand">{vendor.name}</h1>
+              <p className="mt-1 text-muted">{vendor.category}</p>
+              <p className="mt-3 max-w-xl text-ink">{vendor.description}</p>
+              <p className="mt-3 font-medium text-ink">
+                {vendor.reviewCount ? (
+                  <>
+                    ★ {vendor.rating}{' '}
+                    <span className="font-normal text-muted">({plural(vendor.reviewCount, 'review')})</span>
+                  </>
+                ) : (
+                  <span className="font-normal text-muted">No reviews yet</span>
+                )}
               </p>
             </div>
           </div>
-          <button type="button" onClick={() => toggleFavorite(vendor.id)} aria-pressed={isFavorite}
-            className={`rounded-full border px-5 py-2 text-sm font-medium ${isFavorite ? 'border-rose-600 bg-rose-50 text-rose-700' : 'border-stone-300 text-stone-700 hover:border-stone-500'}`}>
+          <Button
+            variant={isFavorite ? 'secondary' : 'primary'}
+            onClick={() => toggleFavorite(vendor.id)}
+            aria-pressed={isFavorite}
+            className={isFavorite ? 'border-accent text-accent' : ''}
+          >
             {isFavorite ? '♥ Saved' : '♡ Save vendor'}
-          </button>
+          </Button>
         </div>
       </div>
 
       {vendor.aiSummary && (
-        <section className="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-5">
-          <h2 className="font-bold text-teal-950">What reviewers say</h2>
-          <p className="mt-1 text-stone-800">{vendor.aiSummary}</p>
-          <p className="mt-2 text-xs text-stone-500">Summary generated by AI from customer reviews.</p>
-        </section>
+        <Card as="section" tone="accent" className="mt-6">
+          <h2 className="font-semibold text-brand">What reviewers say</h2>
+          <p className="mt-1 text-ink">{vendor.aiSummary}</p>
+          <p className="mt-2 text-xs text-muted">Summary generated by AI from customer reviews.</p>
+        </Card>
       )}
 
       <section className="mt-10">
-        <h2 className="text-xl font-bold text-teal-950">Products</h2>
+        <h2 className="font-serif text-2xl text-brand">Products</h2>
         {vendor.products.length === 0 ? (
-          <p className="mt-2 text-stone-600">No products listed yet.</p>
+          <p className="mt-2 text-muted">No products listed yet.</p>
         ) : (
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {vendor.products.map((p) => <ProductCard key={p.id} product={p} showVendor={false} />)}
+            {vendor.products.map((p) => (
+              <ProductCard key={p.id} product={p} showVendor={false} />
+            ))}
           </div>
         )}
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-bold text-teal-950">Where to find them</h2>
+        <h2 className="font-serif text-2xl text-brand">Where to find them</h2>
         {vendor.events.length === 0 ? (
-          <p className="mt-2 text-stone-600">This vendor has no upcoming bazaars yet.</p>
+          <p className="mt-2 text-muted">This vendor has no upcoming bazaars yet.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {vendor.events.map((e) => (
-              <li key={e.id} className="text-stone-700">
-                <span className="font-medium">{formatDate(e.date)}</span>, {e.name} at {e.location}
-                {e.slot ? <span className="text-stone-500"> · Stall {e.slot}</span> : <span className="text-stone-500"> · stall to be announced</span>}
+              <li key={e.id} className="text-ink">
+                <span className="font-semibold">{formatLongDate(e.date)}</span>, {e.name} at {e.location}
+                <span className="text-muted"> · {e.slot ? `Stall ${e.slot}` : 'stall to be announced'}</span>
               </li>
             ))}
           </ul>
@@ -108,38 +134,66 @@ export default function VendorProfile() {
       </section>
 
       <section className="mt-10">
-        <h2 className="text-xl font-bold text-teal-950">Reviews</h2>
+        <h2 className="font-serif text-2xl text-brand">Reviews</h2>
 
         <div className="mt-4 max-w-xl">
           {!user && (
-            <p className="text-stone-600">
-              <Link to={`/login?next=${encodeURIComponent(location.pathname)}`} className="text-teal-800 underline">Log in</Link> as a customer to write a review.
+            <p className="text-muted">
+              <Link
+                to={`/login?next=${encodeURIComponent(location.pathname)}`}
+                className="font-semibold text-brand underline"
+              >
+                Log in
+              </Link>{' '}
+              as a customer to write a review.
             </p>
           )}
           {isCustomer && !myReview && <ReviewForm onSubmit={submitNew} />}
           {isCustomer && myReview && editing && (
-            <ReviewForm initial={myReview} onSubmit={submitEdit} onCancel={() => setEditing(false)} submitLabel="Save changes" />
+            <ReviewForm
+              initial={myReview}
+              onSubmit={submitEdit}
+              onCancel={() => setEditing(false)}
+              submitLabel="Save changes"
+            />
           )}
           {isCustomer && myReview && !editing && (
             <div>
-              <p className="mb-2 text-sm font-medium text-stone-700">Your review</p>
+              <p className="mb-2 text-sm font-semibold text-ink">Your review</p>
               <ReviewCard review={myReview} />
-              <div className="mt-2 flex gap-3 text-sm">
-                <button type="button" onClick={() => setEditing(true)} className="text-teal-800 underline">Edit</button>
-                <button type="button" onClick={removeMine} className="text-red-700 underline">Delete</button>
+              <div className="mt-2 flex gap-2">
+                <Button size="sm" variant="secondary" onClick={() => setEditing(true)}>
+                  Edit
+                </Button>
+                <Button size="sm" variant="secondary" className="text-danger" onClick={() => setConfirmDelete(true)}>
+                  Delete
+                </Button>
               </div>
             </div>
           )}
         </div>
 
         {otherReviews.length === 0 && !myReview ? (
-          <p className="mt-4 text-stone-600">No reviews yet.</p>
+          <p className="mt-4 text-muted">No reviews yet.</p>
         ) : (
           <div className="mt-6 grid gap-4 md:grid-cols-2">
-            {otherReviews.map((r) => <ReviewCard key={r.id} review={r} />)}
+            {otherReviews.map((r) => (
+              <ReviewCard key={r.id} review={r} />
+            ))}
           </div>
         )}
       </section>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Delete your review?"
+        confirmLabel="Delete"
+        tone="danger"
+        onConfirm={removeMine}
+        onCancel={() => setConfirmDelete(false)}
+      >
+        <p>Your review of {vendor.name} will be removed. You can write a new one later.</p>
+      </ConfirmDialog>
     </div>
-  );
+  )
 }
