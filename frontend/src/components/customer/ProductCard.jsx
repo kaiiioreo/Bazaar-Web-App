@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import { StockBadge } from '../ui/Badge'
 import { peso } from '../../utils/format'
-import FadeImg from '../ui/FadeImg'
+import { ProductImage } from '../ui/ListingImage'
 
 // Product card. On browse/search pages the whole card links to the vendor's shop.
 // On the vendor's own page (showVendor = false) it is not a link, since you're already there.
@@ -10,9 +10,13 @@ export default function ProductCard({ product, showVendor = true }) {
 
   const content = (
     <>
-      {product.image && (
-        <FadeImg src={product.image} alt={product.name} className="h-36 w-full object-cover" loading="lazy" />
-      )}
+      <ProductImage
+        src={product.image}
+        name={product.name}
+        category={product.category}
+        className="h-36 w-full"
+        loading="lazy"
+      />
       <div className="flex flex-1 flex-col p-4">
         <div className="flex items-start justify-between gap-2">
           <h3 className="font-semibold text-ink">{product.name}</h3>

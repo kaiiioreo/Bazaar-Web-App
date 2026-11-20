@@ -2,17 +2,17 @@ import Table, { Td } from '../ui/Table'
 import Button from '../ui/Button'
 import StockSelect from './StockSelect'
 import { peso } from '../../utils/format'
+import { ProductImage } from '../ui/ListingImage'
 
 function Thumb({ product }) {
-  return product.image ? (
-    <img src={product.image} alt="" className="h-10 w-10 rounded-lg object-cover" />
-  ) : (
-    <div
-      className="grid h-10 w-10 place-items-center rounded-lg bg-brand-soft text-sm font-semibold text-brand"
-      aria-hidden="true"
-    >
-      {product.name[0]}
-    </div>
+  return (
+    <ProductImage
+      src={product.image}
+      name={product.name}
+      category={product.category}
+      className="h-10 w-10 rounded-lg"
+      iconSize={18}
+    />
   )
 }
 

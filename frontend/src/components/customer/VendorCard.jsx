@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import Awning from './Awning'
 import { plural } from '../../utils/format'
+import { VendorAvatar } from '../ui/ListingImage'
 
 // Vendor summary card. The whole card links to the shop; the heart saves it to favorites.
 export default function VendorCard({ vendor, isFavorite, onToggleFavorite }) {
@@ -9,7 +10,13 @@ export default function VendorCard({ vendor, isFavorite, onToggleFavorite }) {
       <Awning color={vendor.accent} />
       <div className="p-4">
         <div className="flex items-start justify-between gap-3">
-          <div>
+          <VendorAvatar
+            src={vendor.image}
+            name={vendor.name}
+            category={vendor.category}
+            className="h-12 w-12 shrink-0"
+          />
+          <div className="min-w-0 flex-1">
             <h3 className="font-semibold text-ink">
               {/* Stretched link: the whole card is clickable, the heart button stays separate */}
               <Link
