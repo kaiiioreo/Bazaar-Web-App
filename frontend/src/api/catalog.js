@@ -41,6 +41,7 @@ export const toReview = (r) => ({
   comment: r.comment,
   date: r.created_at,
   flagged: r.ai_flag,
+  removed: r.status === 'removed',
 })
 
 export const toEvent = (e) => ({

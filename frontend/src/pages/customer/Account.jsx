@@ -114,12 +114,17 @@ export default function Account() {
                     <span className="text-xs text-muted">{formatDate(r.date)}</span>
                   </div>
                   <Stars rating={r.rating} />
-                  <p className="mt-1 text-sm text-ink">{r.comment}</p>
+                  <p className={`mt-1 text-sm ${r.removed ? 'text-muted line-through' : 'text-ink'}`}>{r.comment}</p>
+                  {r.removed && (
+                    <p className="mt-2 text-xs text-danger">
+                      An admin removed this review because it broke the review rules. You can write a new one.
+                    </p>
+                  )}
                   <Link
                     to={`/customer/vendors/${r.vendorId}`}
                     className="mt-2 inline-block text-xs text-brand underline"
                   >
-                    Edit or delete
+                    {r.removed ? 'Write a new review' : 'Edit or delete'}
                   </Link>
                 </li>
               ))}
