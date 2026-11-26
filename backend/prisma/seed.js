@@ -25,18 +25,37 @@ async function main() {
   /* ---------- Users ---------- */
   const admin = await makeUser('Bazaar Admin', 'admin@bazaar.ph', 'admin', 'active', 90)
 
+  // Sample photos (free to use under the Unsplash License, https://unsplash.com/license).
+  // Carcar Crunch and the basil pot have no photo on purpose, to show the placeholder picture.
+  const photo = (id, w = 600) => `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${w}&q=80`
+
   const vendorSeed = [
     {
       email: 'vendor@bazaar.ph',
       owner: 'Nena Santos',
       business_name: "Nena's Rosquillos",
+      logo: photo('1621353354775-783845154a66', 256),
       category: 'Snacks',
       description: 'Hand-rolled sweet rosquillos baked fresh every morning, a Liloan family recipe.',
       ai_summary: 'Reviewers praise the crisp texture and fair prices. A few mention that stock runs out before noon.',
       contact_phone: '0917 123 4567',
       products: [
-        ['Rosquillos (12 pcs)', 90, 'Snacks', 'in_stock', 'Sweet, crisp rosquillos in a paper bag.'],
-        ['Rosquillos gift tin', 220, 'Snacks', 'low_stock', 'A sweet gift tin of 30 rosquillos.'],
+        [
+          'Rosquillos (12 pcs)',
+          90,
+          'Snacks',
+          'in_stock',
+          'Sweet, crisp rosquillos in a paper bag.',
+          photo('1621353354775-783845154a66'),
+        ],
+        [
+          'Rosquillos gift tin',
+          220,
+          'Snacks',
+          'low_stock',
+          'A sweet gift tin of 30 rosquillos.',
+          photo('1693324186122-4967df47cb9d'),
+        ],
       ],
     },
     {
@@ -55,47 +74,100 @@ async function main() {
       email: 'sugbomango@bazaar.ph',
       owner: 'Lita Gomez',
       business_name: 'Sugbo Dried Mango',
+      logo: photo('1519096845289-95806ee03a1a', 256),
       category: 'Food',
       description: 'Sweet dried Cebu mangoes, sold by the pack or as gift boxes.',
       ai_summary: 'Consistently described as sweet, chewy, and good value. Gift boxes are a repeat favorite.',
       products: [
-        ['Dried mango (100g)', 85, 'Food', 'in_stock', 'Sweet and chewy dried mango slices.'],
-        ['Mango gift box', 260, 'Food', 'low_stock', 'Three packs of dried mango in a gift box.'],
+        [
+          'Dried mango (100g)',
+          85,
+          'Food',
+          'in_stock',
+          'Sweet and chewy dried mango slices.',
+          photo('1519096845289-95806ee03a1a'),
+        ],
+        [
+          'Mango gift box',
+          260,
+          'Food',
+          'low_stock',
+          'Three packs of dried mango in a gift box.',
+          photo('1550825570-659f94cc3a9c'),
+        ],
       ],
     },
     {
       email: 'habal@bazaar.ph',
       owner: 'Grace Mendoza',
       business_name: 'Habal Handmade',
+      logo: photo('1758487424832-a53ae6cdefdb', 256),
       category: 'Crafts',
       description: 'Woven bags, coasters, and keychains made by local weavers.',
       ai_summary: 'Buyers like the sturdy weaving and bright colors. Custom orders take longer than expected.',
       products: [
-        ['Woven tote bag', 350, 'Crafts', 'in_stock', 'Handwoven tote in assorted colors.'],
-        ['Coaster set (4)', 120, 'Crafts', 'in_stock', 'Woven coasters, set of four.'],
+        [
+          'Woven tote bag',
+          350,
+          'Crafts',
+          'in_stock',
+          'Handwoven tote in assorted colors.',
+          photo('1766634001794-b3003f486954'),
+        ],
+        [
+          'Coaster set (4)',
+          120,
+          'Crafts',
+          'in_stock',
+          'Woven coasters, set of four.',
+          photo('1758487424832-a53ae6cdefdb'),
+        ],
       ],
     },
     {
       email: 'kapesugbo@bazaar.ph',
       owner: 'Paolo Dizon',
       business_name: 'Kape Sugbo',
+      logo: photo('1595069007456-aedfdac0ef45', 256),
       category: 'Drinks',
       description: 'Locally roasted barako coffee beans and cold brew bottles.',
       ai_summary: 'Strong, smooth flavor is the most common compliment. Cold brew sells out quickly.',
       products: [
-        ['Barako beans (250g)', 180, 'Drinks', 'in_stock', 'Medium roast barako coffee beans.'],
-        ['Cold brew bottle', 110, 'Drinks', 'low_stock', 'Ready-to-drink cold brew, 250ml.'],
+        [
+          'Barako beans (250g)',
+          180,
+          'Drinks',
+          'in_stock',
+          'Medium roast barako coffee beans.',
+          photo('1743356629215-abb470447e71'),
+        ],
+        [
+          'Cold brew bottle',
+          110,
+          'Drinks',
+          'low_stock',
+          'Ready-to-drink cold brew, 250ml.',
+          photo('1595069007456-aedfdac0ef45'),
+        ],
       ],
     },
     {
       email: 'tabo@bazaar.ph',
       owner: 'Ken Sarmiento',
       business_name: 'Tabo Plants',
+      logo: photo('1767865728862-a12da7ee9eb8', 256),
       category: 'Plants',
       description: 'Small succulents, herbs, and starter pots for apartments.',
       ai_summary: 'Healthy plants and helpful care tips from the seller. Limited variety on busy days.',
       products: [
-        ['Succulent in clay pot', 95, 'Plants', 'in_stock', 'Small succulent in a hand-painted pot.'],
+        [
+          'Succulent in clay pot',
+          95,
+          'Plants',
+          'in_stock',
+          'Small succulent in a hand-painted pot.',
+          photo('1767865728862-a12da7ee9eb8'),
+        ],
         ['Basil starter pot', 60, 'Plants', 'out_of_stock', 'Herb starter pot for the kitchen window.'],
       ],
     },
@@ -103,11 +175,21 @@ async function main() {
       email: 'chocobod@bazaar.ph',
       owner: 'Ramon Dela Cruz',
       business_name: 'Choco Bod Sweets',
+      logo: photo('1605807646983-377bc5a76493', 256),
       category: 'Baked Goods',
       description: 'Chocolate treats and pastries.',
       status: 'suspended',
       ai_summary: '',
-      products: [['Chocobod cake', 280, 'Baked Goods', 'out_of_stock', 'Rich chocolate cake, whole.']],
+      products: [
+        [
+          'Chocobod cake',
+          280,
+          'Baked Goods',
+          'out_of_stock',
+          'Rich chocolate cake, whole.',
+          photo('1605807646983-377bc5a76493'),
+        ],
+      ],
     },
   ]
 
@@ -134,13 +216,15 @@ async function main() {
         contact_info: v.email,
         contact_phone: v.contact_phone ?? null,
         ai_summary: v.ai_summary || null,
+        profile_image: v.logo ?? null,
         products: {
-          create: v.products.map(([name, price, category, stock_status, description]) => ({
+          create: v.products.map(([name, price, category, stock_status, description, image]) => ({
             name,
             price,
             category,
             stock_status,
             description,
+            image: image ?? null,
           })),
         },
       },
