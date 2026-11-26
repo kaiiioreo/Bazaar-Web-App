@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import FadeImg from './FadeImg'
+import { categoryStyle } from '../../utils/categoryStyle'
 
 // Pictures for product and vendor listings (SRS 3.2.1: every listing shows a picture).
 // If there is no photo, or it fails to load, a soft placeholder with a category icon is shown instead.
@@ -18,22 +19,8 @@ const ICONS = {
   tag: 'M3 12V4h8l10 10-8 8L3 12Zm5-4h.01',
 }
 
-const LOOK = {
-  Food: ['bowl', '#f6e7d4', '#9a6a3c'],
-  Snacks: ['cookie', '#f5e9cf', '#8a6420'],
-  Drinks: ['cup', '#ece2d8', '#6f4e37'],
-  Produce: ['leaf', '#e4eedb', '#4f7a3a'],
-  'Baked Goods': ['cake', '#f6e4dc', '#a2593f'],
-  Crafts: ['basket', '#efe6d8', '#8a6a45'],
-  Accessories: ['bag', '#ece6ef', '#6e5a7e'],
-  Clothing: ['shirt', '#e5e9f0', '#4f6383'],
-  Home: ['home', '#e8e7dd', '#5f6658'],
-  Plants: ['leaf', '#e2ecdc', '#3f6b42'],
-  Other: ['tag', '#efede6', '#6d7268'],
-}
-
 function Placeholder({ category, label, round = false, className = '', iconSize = 36 }) {
-  const [icon, bg, fg] = LOOK[category] || LOOK.Other
+  const { icon, soft: bg, color: fg } = categoryStyle(category)
   return (
     <div
       role="img"

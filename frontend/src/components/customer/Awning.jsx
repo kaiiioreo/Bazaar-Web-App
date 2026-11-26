@@ -1,4 +1,4 @@
-// Striped stall canopy. The one decorative motif of the customer UI.
+// Striped stall canopy. On shop cards and shop pages its color shows the shop's category (utils/categoryStyle.js).
 export default function Awning({ color = '#0f766e', className = 'h-3' }) {
   return (
     <div

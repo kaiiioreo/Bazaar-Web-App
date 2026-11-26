@@ -1,11 +1,9 @@
 import api from './client'
+import { categoryStyle } from '../utils/categoryStyle'
 
 // Public browsing for guests and customers.
 // The customer pages were built with camelCase mock data, so these helpers
 // convert the API's snake_case fields into that shape.
-
-// Earthy stall-awning colours that sit well with the Bazaar palette.
-const ACCENTS = ['#293f32', '#b86f57', '#6b7a3a', '#c08a2b', '#8c5a46', '#7d9478', '#6e4b5e', '#3f6b6b']
 
 export const toVendor = (v) => ({
   id: v.vendor_id,
@@ -16,7 +14,7 @@ export const toVendor = (v) => ({
   rating: v.rating ?? 0,
   reviewCount: v.review_count ?? 0,
   aiSummary: v.ai_summary,
-  accent: ACCENTS[v.vendor_id % ACCENTS.length],
+  accent: categoryStyle(v.category).color, // awning stripe color shows the shop's category
 })
 
 export const toProduct = (p) => ({
